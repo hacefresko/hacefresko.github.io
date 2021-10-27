@@ -81,14 +81,14 @@ analytics:
 # Site Author
 author:
   name             : "Hacefresko"
-  avatar           : "profile.png"
+  avatar           : "profile.jpeg"
   bio              : "Computer science student interested in cybersecurity"
   location         : "UCM"
   employer         :
   pubmed           : 
   googlescholar    : 
   email            :
-  researchgate     :  # example: "https://www.researchgate.net/profile/yourprofile"
+  researchgate     : 
   uri              :
   bitbucket        :
   codepen          :

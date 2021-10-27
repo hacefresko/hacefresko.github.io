@@ -1,4 +1,4 @@
 # main links links
 main:
-  - title: "Blog Posts"
-    url: /year-archive/
+  - title: "Posts by Tag"
+    url: /tags/
