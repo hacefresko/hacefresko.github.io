@@ -3,17 +3,17 @@
    ========================================================================== */
 
 /* ==========================================================================
-   Neon skin
+   Taken from Neon skin
    ========================================================================== */
 
 /* Colors */
 $background-color: #1f1f1f !default;
 $text-color: #fff6fb !default;
 $primary-color: #0eecbc !default;
-$border-color: rgb(65, 64, 64) !default;
-$code-background-color: rgb(65, 64, 64) !default;
-$code-background-color-dark: rgb(65, 64, 64) !default;
-$form-background-color: rgb(65, 64, 64) !default;
+$border-color: rgb(37, 37, 37) !default;
+$code-background-color: rgb(37, 37, 37) !default;
+$code-background-color-dark: rgb(37, 37, 37) !default;
+$form-background-color: rgb(37, 37, 37) !default;
 $footer-background-color: mix($primary-color, #000, 10%) !default;
 $link-color: $primary-color !default;
 $link-color-hover: mix(#fff, $link-color, 25%) !default;
@@ -111,13 +111,6 @@ $darker-gray                : mix(#000, $gray, 60%);
 $light-gray                 : mix(#fff, $gray, 50%);
 $lighter-gray               : mix(#fff, $gray, 90%);
 
-//$body-color                 : #fff;
-//$background-color           : #fff;
-//$code-background-color      : #fafafa;
-//$code-background-color-dark : $light-gray;
-//$text-color                 : $dark-gray;
-//$border-color               : $lighter-gray;
-
 $success-color              : #62c462;
 $warning-color              : #f89406;
 $danger-color               : #ee5f5b;
@@ -144,14 +137,6 @@ $vimeo-color                : #1ab7ea;
 $vine-color                 : #00bf8f;
 $youtube-color              : #bb0000;
 $xing-color                 : #006567;
-
-
-/* links */
-//$link-color                 : $info-color;
-//$link-color-hover           : mix(#000, $link-color, 25%);
-//$link-color-visited         : mix(#fff, $link-color, 25%);
-//$masthead-link-color        : $primary-color;
-//$masthead-link-color-hover  : mix(#000, $primary-color, 25%);
 
 
 /*
