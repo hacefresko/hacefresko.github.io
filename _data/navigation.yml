@@ -1,4 +1,4 @@
 # main links links
 main:
-  - title: "Posts by Tag"
-    url: /tags/
+  - title: "All Posts"
+    url: /posts/

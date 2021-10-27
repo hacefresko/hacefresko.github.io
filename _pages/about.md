@@ -9,7 +9,8 @@ redirect_from:
 ---
 
 {% include base_path %}
-{% for post in site.posts %}
+{% for i in (0..9) %}
+  {% assign post = site.posts[i] %}
   {% capture year %}{{ post.date | date: '%Y' }}{% endcapture %}
   {% if year != written_year %}
     {% capture written_year %}{{ year }}{% endcapture %}
