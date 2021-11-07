@@ -2,3 +2,9 @@
 main:
   - title: "All Posts"
     url: /posts/
+
+  - title: "Posts by tag"
+    url: /tags/
+
+  - title: "Terms"
+    url: /terms/
