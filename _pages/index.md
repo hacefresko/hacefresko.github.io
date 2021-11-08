@@ -1,11 +1,11 @@
 ---
 permalink: /
 title: "Recent Posts"
-excerpt: "Home"
+excerpt: "Recent posts in the blog"
 author_profile: true
 redirect_from: 
-  - /about/
-  - /about.html
+  - /index/
+  - /index.html
 ---
 
 {% include base_path %}

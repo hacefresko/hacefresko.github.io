@@ -2,6 +2,7 @@
 layout: archive
 permalink: /tags/
 title: "Posts by Tag"
+excerpt: "All posts in the blog grouped by tags"
 author_profile: true
 ---
 
