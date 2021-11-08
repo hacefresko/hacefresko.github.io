@@ -3,7 +3,7 @@ main:
   - title: "All Posts"
     url: /posts/
 
-  - title: "Posts by tag"
+  - title: "Posts by Tag"
     url: /tags/
 
   - title: "Terms"

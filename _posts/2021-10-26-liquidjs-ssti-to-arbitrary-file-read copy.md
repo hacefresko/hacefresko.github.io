@@ -2,6 +2,7 @@
 title: 'LiquidJS SSTI to Arbitrary File Read'
 date: 2021-10-26
 permalink: /posts/liquidjs-ssti-to-arbitrary-file-read
+tweet-image: /files/2021-10-26-poc_screenshot.jpeg
 tags:
   - Bug Bounty
   - SSTI
