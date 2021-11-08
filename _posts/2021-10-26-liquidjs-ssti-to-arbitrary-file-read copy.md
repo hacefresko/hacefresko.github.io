@@ -8,7 +8,7 @@ tags:
   - LiquidJS
   - JavaScript
 header:
-  image: 2021-10-26-poc_screenshot.jpeg
+  image: 2021-10-26-header.jpeg
 ---
 
 {% raw %}
