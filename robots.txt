@@ -1,0 +1,7 @@
+User-agent: Twitterbot
+Disallow:
+
+User-agent: *
+Disallow: /
+
+Sitemap: https://hacefresko.github.io/sitemap.xml
