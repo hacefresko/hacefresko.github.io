@@ -4,8 +4,8 @@ title: "Recent Posts"
 excerpt: "Recent posts in the blog"
 author_profile: true
 redirect_from: 
-  - /index/
-  - /index.html
+  - /about/
+  - /about.html
 ---
 
 {% include base_path %}
