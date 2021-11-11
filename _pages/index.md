@@ -7,7 +7,7 @@ redirect_from:
   - /about/
   - /about.html
 ---
-
+<meta name="google-site-verification" content="zDnKQCYsgAZXSg-xueOayFFrYOicAVaWxGfP1E93LJk" />
 {% include base_path %}
 {% for i in (0..9) %}
   {% assign post = site.posts[i] %}
