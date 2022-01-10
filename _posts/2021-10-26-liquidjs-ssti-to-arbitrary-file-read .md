@@ -7,7 +7,8 @@ tags:
   - SSTI
   - LiquidJS
   - JavaScript
-header: /images/2021-10-26/poc_screenshot.jpeg
+header:
+  tweet-image: 2021-10-26/poc_screenshot.jpeg
 ---
 
 {% raw %}
