@@ -79,7 +79,9 @@ By typing enter, we are asked to input an username and password. Again, thanks t
 
 Once I knew the connection worked, I needed to make the soldering less fragile, since it broke twice in the process of actually getting the shell. I applied some hot melt silicone to secure all the wires and closed the device again, disconnecting all motors. Now, my testing unit was ready to go:
 
-<img src="/images/2022-01-15/definitive_conn.jpg" alt="definitive_conn" height="400"/> <img src="/images/2022-01-15/final_device.jpg" alt="final_device" height="400"/> <img src="/images/2022-01-15/final_setup.jpg" alt="final_setup" height="400"/>
+<div style="display: inline-block;">
+    <img src="/images/2022-01-15/definitive_conn.jpg" alt="definitive_conn" height="400"/> <img src="/images/2022-01-15/final_device.jpg" alt="final_device" height="400"/> <img src="/images/2022-01-15/final_setup.jpg" alt="final_setup" height="400"/>
+</div>
 
 ## Exploring the device
 
