@@ -7,8 +7,8 @@ tags:
   - Command Injection
   - TP-Link
 header: 
-    tweet-image: /images/2022-01-15/poc.png
-    teaser: /images/2022-01-15/poc.png
+  tweet-image: /images/2022-01-15/poc.png
+  teaser: /images/2022-01-15/poc.png
 ---
 
 {% raw %}
