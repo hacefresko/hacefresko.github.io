@@ -17,6 +17,7 @@ redirect_from:
       {% capture written_year %}{{ year }}{% endcapture %}
     {% endif %}
     {% include archive-single.html %}
+    
     <img src="{{ post.header }}" alt="header" style="width: auto; height: 300px; display: block;margin-left: auto;margin-right: auto;">
   {% endif %}
 {% endfor %}
