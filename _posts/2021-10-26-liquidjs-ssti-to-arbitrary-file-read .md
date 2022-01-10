@@ -9,7 +9,7 @@ tags:
   - JavaScript
 header:
   tweet-image: 2021-10-26/poc_screenshot.jpeg
-  teaser: 2021-10-26/poc_screenshot.jpeg
+  teaser: 2021-10-26/teaser.jpeg
 ---
 
 {% raw %}

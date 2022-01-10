@@ -8,7 +8,7 @@ tags:
   - TP-Link
 header: 
   tweet-image: 2022-01-15/poc.png
-  teaser: 2022-01-15/poc.png
+  teaser: 2022-01-15/teaser.JPG
 ---
 
 {% raw %}
