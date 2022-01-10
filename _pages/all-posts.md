@@ -1,16 +1,15 @@
 ---
-permalink: /
-title: "Recent Posts"
-excerpt: "Recent posts in the blog"
+layout: archive
+permalink: /posts/
+title: "Blog posts"
+excerpt: "All posts in the blog"
 author_profile: true
-redirect_from: 
-  - /about/
-  - /about.html
+redirect_from:
+  - /wordpress/blog-posts/
 ---
 
 {% include base_path %}
-{% for i in (0..9) %}
-  {% assign post = site.posts[i] %}
+{% for post in site.posts %}
   {% capture year %}{{ post.date | date: '%Y' }}{% endcapture %}
   {% if year != written_year %}
     {% capture written_year %}{{ year }}{% endcapture %}
