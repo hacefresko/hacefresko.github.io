@@ -9,7 +9,6 @@ tags:
   - JavaScript
 header:
   tweet-image: 2021-10-26/poc_screenshot.jpeg
-image:
   teaser: 2021-10-26/poc_screenshot.jpeg
 ---
 

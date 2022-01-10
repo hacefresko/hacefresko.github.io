@@ -8,7 +8,6 @@ tags:
   - TP-Link
 header: 
     tweet-image: /images/2022-01-15/poc.png
-image:
     teaser: /images/2022-01-15/poc.png
 ---
 
