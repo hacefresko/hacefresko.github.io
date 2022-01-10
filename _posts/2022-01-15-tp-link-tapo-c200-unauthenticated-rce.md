@@ -13,7 +13,7 @@ header:
 {% raw %}
 Hello there. Today I want to share with you my first IoT vulnerability, found a couple months ago. It's a command injection vulnerability in the [TP-Link Tapo c200 camera](https://www.tp-link.com/us/home-networking/cloud-camera/tapo-c200/) that allows an attacker to take full control of the device, with root privileges. It affects all firmware versions prior to 1.1.16 Build 211209 Rel. 37726N, so if you own this model, I suggest you update it.
 
-<img src="/images/2022-01-15/tapo_cam.jpeg" alt="tapo_cam" style="width: 400px;display: block;margin-left: auto;margin-right: auto;"/>
+<img src="/images/2022-01-15/tapo_cam.jpeg" alt="tapo_cam" style="width: 300px;display: block;margin-left: auto;margin-right: auto;"/>
 
 First of all, this is a summary of my journey doing research on this IP camera and it does not contain the whole process. Before this, I didn't know anything about reverse engineering and I had never worked with IoT devices, so it has been kind of an introduction for me to those fields. It has been a very unstable process where I have stopped for long periods of time due to thinking that I had already done everything I could. However, there was always a video, an article or something that inspired me to learn or to try new things, and I have to thank the community for that. 
 
@@ -46,15 +46,11 @@ As you can see, the device has some interesting open ports. First thing I tested
 
 Before buying the camera, I looked online for previous research on the device and, luckily, I found this [Github repository](https://github.com/nervous-inhuman/tplink-tapo-c200-re) where people were collaborating to reverse engineer it. [One of the issues](https://github.com/nervous-inhuman/tplink-tapo-c200-re/issues/1) explains how to get a shell through the [UART port](https://www.embedded.com/understanding-the-uart/), which I knew nothing about at the time. So I learned the basics and bought a [USB to TTL converter](https://www.amazon.es/gp/product/B07CQTC8P2/ref=ppx_yo_dt_b_asin_title_o09_s00?ie=UTF8&psc=1) to connect to it:
 
-
-<img src="/images/2022-01-15/ARCELI.jpg" alt="USB_to_TTL" width="500"/>
-
+<img src="/images/2022-01-15/ARCELI.jpg" alt="USB_to_TTL" style="width: 400px;display: block;margin-left: auto;margin-right: auto;"/>
 
 With the help of the [mentioned issue](https://github.com/nervous-inhuman/tplink-tapo-c200-re), I was able to open the device with a knife and a screwdriver and quickly locate the UART. After a couple of tries and a lot of patience, I finally managed to solder some wires to the pads:
 
-
-<img src="/images/2022-01-15/first_conn.jpg" alt="first_conn" width="500"/>
-
+<img src="/images/2022-01-15/first_conn.jpg" alt="first_conn" style="width: 400px;display: block;margin-left: auto;margin-right: auto;"/>
 
 Then, it was time to test if the soldering was good enough for the data to be transmitted. I connected the wires to the USB adapter, taking into account that Rx of the UART goes to Tx of the adapter and vice versa, and connected the adapter to my computer. Again, thanks to the [mentioned issue](https://github.com/nervous-inhuman/tplink-tapo-c200-re), I knew the baud rate for the serial connection was 57600, so I executed `$ sudo screen /dev/tty.usbserial-0001 57600`, where `/dev/tty.usbserial-0001` is the USB port where the adapter is connected to, and powered on the device. I immediately started receiving data, great.
 
@@ -83,10 +79,7 @@ By typing enter, we are asked to input an username and password. Again, thanks t
 
 Once I knew the connection worked, I needed to make the soldering less fragile, since it broke twice in the process of actually getting the shell. I applied some hot melt silicone to secure all the wires and closed the device again, disconnecting all motors. Now, my testing unit was ready to go:
 
-
-
 <img src="/images/2022-01-15/definitive_conn.jpg" alt="definitive_conn" height="400"/> <img src="/images/2022-01-15/final_device.jpg" alt="final_device" height="400"/> <img src="/images/2022-01-15/final_setup.jpg" alt="final_setup" height="400"/>
-
 
 ## Exploring the device
 
@@ -231,9 +224,7 @@ This was my first time using Ghidra. I had seen some videos and read some articl
 
 I opened the `uhttpd` binary and, after some trial and error, figured out that the language was MIPS32, little endian, with mips16e. Some function names came by default with the binary, but others didn’t. I also spent some time renaming functions since, apparently, Ghidra is usually confused with external functions and you get strange wrappers for them like:
 
-
-<img src="/images/2022-01-15/strange_wrapper.png" alt="strange_wrapper" width="500"/>
-
+<img src="/images/2022-01-15/strange_wrapper.png" alt="strange_wrapper" style="width: 400px;display: block;margin-left: auto;margin-right: auto;"/>
 
 I looked at the `main` function and other important ones to figure out the logic of the binary and how it was structured. I found some interesting ones, already named, among which were `do_login` or `uh_slp_proto_request`. I will talk more about the last one later.
 
@@ -241,23 +232,19 @@ After this initial contact, I started looking for bugs. Since I'm a huge noob wi
 
 Function `exec_and_read_json` uses `popen` to execute commands:
  
-
-<img src="/images/2022-01-15/exec_and_get_json.png" alt="exec_and_read_json" width="600"/>
-
+<img src="/images/2022-01-15/exec_and_get_json.png" alt="exec_and_read_json" style="width: 450px;display: block;margin-left: auto;margin-right: auto;"/>
 
 `exec_and_read_json` is used by 2 unnamed functions, which I named `set_language` and `wifi_connect`. They respectively deal with language and WiFi configuration (obviously). `wifi_connect` seems to parse single quotes (`'`), however, `set_language` doesn't. This means that if we can control the input for the `set_language` function, we can successfully inject our own commands.
 
+<img src="/images/2022-01-15/wifi_connect.png" alt="wifi_connect" style="width: 500px;display: block;margin-left: auto;margin-right: auto;"/>
 
-<img src="/images/2022-01-15/wifi_connect.png" alt="wifi_connect" width="600"/>
-<img src="/images/2022-01-15/set_language.png" alt="set_language" width="600"/>
-
+<img src="/images/2022-01-15/set_language.png" alt="set_language" style="width: 600px;display: block;margin-left: auto;margin-right: auto;"/>
 
 Function `set_language` is used by `uh_slp_proto_request`, the function I mentioned before, which passes as input some parsed data received from the user.
 
+<img src="/images/2022-01-15/main_func_1.png" alt="main_func_1" style="width: 600px;display: block;margin-left: auto;margin-right: auto;"/>
 
-<img src="/images/2022-01-15/main_func_1.png" alt="main_func_1" width="600"/>
-<img src="/images/2022-01-15/main_func_2.png" alt="main_func_2" width="600"/>
-
+<img src="/images/2022-01-15/main_func_2.png" alt="main_func_2" style="width: 600px;display: block;margin-left: auto;margin-right: auto;"/>
 
 To parse the user data, `uh_slp_proto_request` checks if it is a valid JSON object. Then, it gets a string value identified by key `"method"` and a dictionary value identified by `"params"` (at least that is what I think, since function call could not be resolved by Ghidra but seemed to work this way). Depending on the selected method, `uh_slp_proto_request` selects the function which will be called.
 
@@ -267,9 +254,7 @@ By submitting `{"method": "setLanguage", "params": {"payload": "'; touch poc;'"}
 
 Now, `uh_slp_proto_request` is used by another unnamed function managing all requests, which I named `main_server_function`. If a request is valid (does not exceed maximum length, uses `http` or `https` depending on the server config, etc.), `main_server_function` checks if the URL contains `/cgi-bin/luci` or `/web-static`. If it doesn't, `uh_slp_proto_request` is called.
 
-
-<img src="/images/2022-01-15/uh_slp_proto_request_entrypoint.png" alt="uh_slp_proto_request_entrypoint" width="700"/>
-
+<img src="/images/2022-01-15/uh_slp_proto_request_entrypoint.png" alt="uh_slp_proto_request_entrypoint" style="width: 600px;display: block;margin-left: auto;margin-right: auto;"/>
 
 By guessing and sending a couple of requests to the camera, we can check that data used by `uh_slp_proto_request` is regular POST data. So, if we send a POST request to `/` with the previous payload, `uh_slp_proto_request` will process this data, call `set_language` and our payload will be injected in the command executed by `exec_and_get_result`. 
 
@@ -280,8 +265,8 @@ As you can see, I didn't mention anything about authentication, since the `setLa
 Now, it's time to write the exploit. I spent some time figuring out how to get a reverse shell with `netcat`. It seemed trivial but I couldn't get it to work. I found out that the `netcat` version installed in BusyBox is quite limited in terms of functionality, so regular reverse shells were not valid. However, I found what I was looking for in [
 PayloadsAllTheThings](https://github.com/swisskyrepo/PayloadsAllTheThings/blob/master/Methodology%20and%20Resources/Reverse%20Shell%20Cheatsheet.md#ncat) repository (as usual), and got the perfect reverse shell. Since `uhttpd` is running as root (thanks TP-Link), we get a shell with highest privileges by just sending a POST request. So, here is the final PoC:
 
+<img src="/images/2022-01-15/poc_code.png" alt="poc_code" style="width: 800px;display: block;margin-left: auto;margin-right: auto;"/>
 
-<img src="/images/2022-01-15/poc_code.png" alt="poc_code" width="800"/>
-<img src="/images/2022-01-15/poc.png" alt="poc" width="600"/>
+<img src="/images/2022-01-15/poc.png" alt="poc" style="width: 600px;display: block;margin-left: auto;margin-right: auto;"/>
 
 {% endraw %}
