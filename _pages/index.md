@@ -11,10 +11,12 @@ redirect_from:
 {% include base_path %}
 {% for i in (0..9) %}
   {% assign post = site.posts[i] %}
-  {% capture year %}{{ post.date | date: '%Y' }}{% endcapture %}
-  {% if year != written_year %}
-    {% capture written_year %}{{ year }}{% endcapture %}
+  {% if post}
+    {% capture year %}{{ post.date | date: '%Y' }}{% endcapture %}
+    {% if year != written_year %}
+      {% capture written_year %}{{ year }}{% endcapture %}
+    {% endif %}
+    <img src="{{ post.header }}" alt="header">
+    {% include archive-single.html %}
   {% endif %}
-  <img href="{{ post.header }}" alt="header">
-  {% include archive-single.html %}
 {% endfor %}

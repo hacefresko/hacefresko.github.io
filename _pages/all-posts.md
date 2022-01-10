@@ -14,6 +14,6 @@ redirect_from:
   {% if year != written_year %}
     {% capture written_year %}{{ year }}{% endcapture %}
   {% endif %}
-  <img href="{{ post.header }}" alt="header">
+  <img src="{{ post.header }}" alt="header">
   {% include archive-single.html %}
 {% endfor %}
