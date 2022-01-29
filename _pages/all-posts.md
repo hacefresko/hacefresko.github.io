@@ -1,5 +1,4 @@
 ---
-layout: archive
 permalink: /posts/
 title: "Blog posts"
 excerpt: "All posts in the blog"
