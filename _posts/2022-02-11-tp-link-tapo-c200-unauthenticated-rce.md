@@ -1,28 +1,24 @@
 ---
 title: 'TP-Link Tapo c200 Unauthenticated RCE'
-date: 2022-01-15
+date: 2022-02-11
 permalink: /posts/tp-link-tapo-c200-unauthenticated-rce
 tags:
   - IoT
   - Command Injection
   - TP-Link
 header: 
-  tweet-image: 2022-01-15/poc.png
-  teaser: 2022-01-15/poc.png
-
-published: false
+  tweet-image: 2022-02-11/poc.png
+  teaser: 2022-02-11/poc.png
 ---
 
 {% raw %}
-Hello there. Today I want to share with you my first IoT vulnerability, found a couple months ago. It's a command injection vulnerability in the [TP-Link Tapo c200 camera](https://www.tp-link.com/us/home-networking/cloud-camera/tapo-c200/) that allows an attacker to take full control of the device, with root privileges. It affects all firmware versions prior to 1.1.16 Build 211209 Rel. 37726N, so if you own this model, I suggest you update it.
+Hello there. Today I would like to share with you my first CVE, which corresponds to a command injection vulnerability found a couple months ago in the [TP-Link Tapo c200 camera](https://www.tp-link.com/us/home-networking/cloud-camera/tapo-c200/), that allows an attacker to take full control of the device with root privileges. It was assigned CVE-2021-4045 by the INCIBE, and you can check the official advisory [here](). The vulnerability affects all firmware versions prior to 1.1.16 Build 211209 Rel. 37726N, so if you own this model, I suggest you update it. 
 
 <img src="/images/2022-01-15/tapo_cam.jpeg" alt="tapo_cam" style="width: 300px;display: block;margin-left: auto;margin-right: auto;"/>
 
-First of all, this is a summary of my journey doing research on this IP camera and it does not contain the whole process. Before this, I didn't know anything about reverse engineering and I had never worked with IoT devices, so it has been kind of an introduction for me to those fields. It has been a very unstable process where I have stopped for long periods of time due to thinking that I had already done everything I could. However, there was always a video, an article or something that inspired me to learn or to try new things, and I have to thank the community for that. 
+This post will be a summary of my research on this device and how it led to the discovery of this vulnerability. It has been an introduction for me to IoT and hardware hacking, but also to reverse engineering, so please don't be hard on me as there may be some mistakes. I also want to thank the cybersec community, since there was always a video, an article or something else that inspired me to learn or try new things whenever I got stuck. Finally, remember that failure is your best friend, although it sometimes makes you take six months for something you could have done in one or two if you would have read correctly the results of a shell command.
 
-I also want to say that there have been many failures, which have made me learn a lot. Failure is your best friend, although it sometimes makes you take six months for something you could have done in one or two if you would have read correctly the results of a shell command.
-
-Anyway, thanks for reading and I hope you like it. Also take into account that there may be some mistakes, since most of this is based on reverse engineering.
+Anyway, let's start with the article. Thanks for reading and I hope you like it.
 
 ## Initial recon
 
