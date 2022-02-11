@@ -12,7 +12,7 @@ header:
 ---
 
 {% raw %}
-Hello there. Today I would like to share with you my first CVE, which corresponds to a command injection vulnerability found a couple months ago in the [TP-Link Tapo c200 camera](https://www.tp-link.com/us/home-networking/cloud-camera/tapo-c200/), that allows an attacker to take full control of the device with root privileges. It was assigned CVE-2021-4045 by the INCIBE, and you can check the official advisory [here](). The vulnerability affects all firmware versions prior to 1.1.16 Build 211209 Rel. 37726N, so if you own this model, I suggest you update it. 
+Hello there. Today I would like to share with you my first CVE, which corresponds to a command injection vulnerability found a couple months ago in the [TP-Link Tapo c200 camera](https://www.tp-link.com/us/home-networking/cloud-camera/tapo-c200/), that allows an attacker to take full control of the device with root privileges. It was assigned CVE-2021-4045 by the INCIBE, and you can check the official advisory [here](https://www.incibe-cert.es/en/early-warning/security-advisories/tp-link-tapo-c200-remote-code-execution-vulnerability). The vulnerability affects all firmware versions prior to 1.1.16 Build 211209 Rel. 37726N, so if you own this model, I suggest you update it. 
 
 <img src="/images/2022-02-11/tapo_cam.jpeg" alt="tapo_cam" style="width: 300px;display: block;margin-left: auto;margin-right: auto;"/>
 
