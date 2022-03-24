@@ -6,6 +6,7 @@ tags:
   - IoT
   - Command Injection
   - TP-Link
+  - CVE
 header: 
   tweet-image: 2022-02-11/poc.png
   teaser: 2022-02-11/poc.png
