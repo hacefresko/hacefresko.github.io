@@ -10,7 +10,7 @@ locale                   : "en-US"
 title                    : "Hacefresko"
 title_separator          : "-"
 name                     : &name "Hacefresko"
-description              : &description "Blog about a beginner in the field of cybersecurity"
+description              : &description "A blog about my journey in cybersecurity"
 url                      : https://hacefresko.github.io # the base hostname & protocol for your site e.g. "https://mmistakes.github.io"
 baseurl                  : "" # the subpath of your site, e.g. "/blog"
 repository               : "hacefresko/hacefresko.github.io"
@@ -82,7 +82,7 @@ analytics:
 author:
   name             : "Hacefresko"
   avatar           : "profile.png"
-  bio              : "Computer science student interested in cybersecurity"
+  bio              : "Computer engineer interested in cybersecurity"
   location         :
   employer         :
   pubmed           : 
