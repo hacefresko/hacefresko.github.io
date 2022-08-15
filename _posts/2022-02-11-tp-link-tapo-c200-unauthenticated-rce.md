@@ -269,9 +269,7 @@ As you can see, I didn't mention anything about authentication, since the `setLa
 ## Exploitation
 
 Now, it's time to write the exploit. I spent some time figuring out how to get a reverse shell with `netcat`. It seemed trivial but I couldn't get it to work. I found out that the `netcat` version installed in BusyBox is quite limited in terms of functionality, so regular reverse shells were not valid. However, I found what I was looking for in [
-PayloadsAllTheThings](https://github.com/swisskyrepo/PayloadsAllTheThings/blob/master/Methodology%20and%20Resources/Reverse%20Shell%20Cheatsheet.md#ncat) repository (as usual), and got the perfect reverse shell. Since `uhttpd` is running as root (thanks TP-Link), we get a shell with highest privileges by just sending a POST request. So, here is the final PoC (also available at [my Github page](https://github.com/hacefresko/CVE-2021-4045-PoC)):
-
-<img src="/images/2022-02-11/poc_code.png" alt="poc_code" style="width: 800px;display: block;margin-left: auto;margin-right: auto;"/>
+PayloadsAllTheThings](https://github.com/swisskyrepo/PayloadsAllTheThings/blob/master/Methodology%20and%20Resources/Reverse%20Shell%20Cheatsheet.md#ncat) repository (as usual), and got the perfect reverse shell. Since `uhttpd` is running as root (thanks TP-Link), we get a shell with highest privileges by just sending a POST request. I wrote a Python script to do so and it's available at [my Github page](https://github.com/hacefresko/CVE-2021-4045-PoC). This is an image demonstrating this exploit in action:
 
 <img src="/images/2022-02-11/poc.png" alt="poc" style="width: 600px;display: block;margin-left: auto;margin-right: auto;"/>
 
