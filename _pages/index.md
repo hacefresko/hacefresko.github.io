@@ -11,10 +11,6 @@ redirect_from:
 {% for i in (0..9) %}
   {% if site.posts[i] %}
     {% assign post = site.posts[i] %}
-    {% capture year %}{{ post.date | date: '%Y' }}{% endcapture %}
-    {% if year != written_year %}
-      {% capture written_year %}{{ year }}{% endcapture %}
-    {% endif %}
     {% include archive-single.html %}
   {% endif %}
 {% endfor %}
