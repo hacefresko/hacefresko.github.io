@@ -84,7 +84,7 @@ Once I knew the connection worked, I needed to make the soldering less fragile, 
 
 <img src="/images/2022-02-11/final_device.jpg" alt="final_device" style="width: auto;height: 300px;"/>
 
-<img src="/images/2022-02-11/final_setup.jpg" alt="final_setup" style="width: auto;height: 300px;margin-top: 5px;"/>
+<img src="/images/2022-02-11/final_setup.jpg" alt="final_setup" style="width: auto;height: 250;margin-top: 5px;"/>
 </div>
 
 ## Exploring the device
