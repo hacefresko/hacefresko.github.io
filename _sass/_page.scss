@@ -33,7 +33,6 @@
 }
 
 .page__title {
-  color: $primary-color;
   margin-top: 0;
   line-height: 1;
 
@@ -137,6 +136,7 @@
       }
     }
 
+    .page__title,
     .page__meta,
     .page__lead,
     .btn {
