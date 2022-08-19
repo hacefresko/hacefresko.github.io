@@ -25,7 +25,8 @@
     @include full();
 
     .page__content,
-    .page__meta,
+    .page__meta, 
+    .page__date,
     .page__share {
       @include full();
     }
@@ -36,7 +37,8 @@
   margin-top: 0;
   line-height: 1;
 
-  & + .page__meta {
+  & + .page__meta, 
+  & + .page__date {
     margin-top: -0.5em;
   }
 }
@@ -137,7 +139,8 @@
     }
 
     .page__title,
-    .page__meta,
+    .page__meta, 
+    .page__date,
     .page__lead,
     .btn {
       color: #fff;
