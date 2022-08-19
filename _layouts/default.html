@@ -27,7 +27,7 @@ layout: compress
     {% endif %}
 
     <div id="main" role="main">
-      {% if page.is_post %}
+      {% if page.is_post == nil %}
         {% include sidebar.html %}
       {% endif %}
 
