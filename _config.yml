@@ -197,7 +197,6 @@ defaults:
       type: posts
     values:
       layout: default
-      author_profile: true
       read_time: true
       related: true
   # _pages
