@@ -196,10 +196,8 @@ defaults:
       path: ""
       type: posts
     values:
-      layout: single
-      author_profile: true
+      layout: default
       read_time: true
-      comments: true
       share: true
       related: true
   # _pages
@@ -207,7 +205,7 @@ defaults:
       path: ""
       type: pages
     values:
-      layout: single
+      layout: default
       author_profile: true
   # _teaching
 #  - scope:

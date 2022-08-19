@@ -1,7 +1,5 @@
 # main links links
 main:
-  - title: "All Posts"
-    url: /posts/
 
   - title: "Posts by Tag"
     url: /tags/
