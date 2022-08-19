@@ -221,10 +221,11 @@
 
 
 /*
-   Page meta
+   Page meta and date
    ========================================================================== */
 
-.page__meta {
+.page__meta,
+.page__date {
   margin-top: 2em;
   color: mix(#fff, $gray, 25%);
   font-family: $sans-serif;
