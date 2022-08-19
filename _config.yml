@@ -198,7 +198,7 @@ defaults:
     values:
       layout: default
       read_time: true
-      related: true
+      is_post: true
   # _pages
   - scope:
       path: ""
