@@ -16,11 +16,11 @@ layout: compress
     {% include browser-upgrade.html %}
     {% include masthead.html %}
 
-    {% if page.url != "/" and site.breadcrumbs %}
-      {% unless paginator %}
-        {% include breadcrumbs.html %}
-      {% endunless %}
+    {% if page.header.overlay_color or page.header.overlay_image or page.header.image %}
+      {% include page__hero.html %}
     {% endif %}
+
+   
 
     <div id="main" role="main">
 
