@@ -231,7 +231,6 @@
   margin-top: 2em;
   color: mix(#fff, $gray, 25%);
   font-family: $sans-serif;
-  font-size: $type-size-6;
 
   p {
     margin: 0;
@@ -246,25 +245,6 @@
   font-size: $type-size-6;
   text-transform: uppercase;
 }
-
-
-/*
-   Page date
-   ========================================================================== */
-
-   .page__date {
-    color: mix(#fff, $gray, 25%);
-    font-family: $sans-serif;
-    font-size: $type-size-6;
-  
-    p {
-      margin: 0;
-    }
-  
-    a {
-      color: inherit;
-    }
-  }
 
 /*
    Page taxonomy
