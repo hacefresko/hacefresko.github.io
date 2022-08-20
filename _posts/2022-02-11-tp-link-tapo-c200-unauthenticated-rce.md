@@ -15,7 +15,7 @@ header:
 {% raw %}
 Hello there. Today I would like to share with you my first CVE, which corresponds to a command injection vulnerability found a couple months ago in the [TP-Link Tapo c200 camera](https://www.tp-link.com/us/home-networking/cloud-camera/tapo-c200/), that allows an attacker to take full control of the device with root privileges. It was assigned CVE-2021-4045 by the INCIBE, and you can check the official advisory [here](https://www.incibe-cert.es/en/early-warning/security-advisories/tp-link-tapo-c200-remote-code-execution-vulnerability). The vulnerability affects all firmware versions prior to 1.1.16 Build 211209 Rel. 37726N, so if you own this model, I suggest you update it. 
 
-<img src="/images/2022-02-11/tapo_cam.jpeg" alt="tapo_cam" style="width: 300px;display: block;margin-left: auto;margin-right: auto;"/>
+<img src="/images/2022-02-11/tapo_cam.jpeg" alt="tapo_cam" style="width: 500px;display: block;margin-left: auto;margin-right: auto;"/>
 
 This post will be a summary of my research on this device and how it led to the discovery of this vulnerability. It has been an introduction for me to IoT and hardware hacking, but also to reverse engineering, so please don't be hard on me as there may be some mistakes. I also want to thank the cybersec community, since there was always a video, an article or something else that inspired me to learn or try new things whenever I got stuck. Finally, remember that failure is your best friend, although it sometimes makes you take six months for something you could have done in one or two if you would have read correctly the results of a shell command.
 
