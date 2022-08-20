@@ -20,7 +20,11 @@ layout: compress
       {% include page__hero.html %}
     {% endif %}
 
-   
+    {% if page.url != "/" and site.breadcrumbs %}
+      {% unless paginator %}
+        {% include breadcrumbs.html %}
+      {% endunless %}
+    {% endif %}
 
     <div id="main" role="main">
 
