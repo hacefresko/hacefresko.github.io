@@ -36,8 +36,8 @@
 
 .no_author_page {
   @include breakpoint($large) {
-    @include prefix(1 of 12);
-    @include suffix(1 of 12);
+    @include prefix(1.5 of 12);
+    @include suffix(1.5 of 12);
   }
 
   .page__inner-wrap {
