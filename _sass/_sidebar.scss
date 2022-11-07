@@ -130,9 +130,16 @@
 
 .author__urls {
   list-style: none;
+  font-size: 30px;
 
   @include breakpoint($large) {
 
+  }
+
+  img {
+    width: 15pt;
+    margin-left: 3pt;
+    margin-bottom: 4pt;
   }
 
   li {
