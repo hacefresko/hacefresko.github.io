@@ -12,13 +12,14 @@
   padding-right: 1em;
 
   @include breakpoint($large) {
-    max-width: 90%;
+    max-width: 80%;
   }
 }
 
 .page {
   @include breakpoint($large) {
     @include span(3 of 4 last);
+    @include prefix(1 of 12);
     @include suffix(1 of 12);
   }
 
