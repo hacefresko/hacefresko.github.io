@@ -12,15 +12,15 @@
   padding-right: 1em;
 
   @include breakpoint($x-large) {
-    max-width: $x-large;
+    max-width: 90%;
   }
 }
 
 .page {
   @include breakpoint($large) {
-    @include span(10 of 12 last);
+    @include span(3 of 4 last);
     @include prefix(0.5 of 12);
-    @include suffix(2 of 12);
+    @include suffix(1.5 of 12);
   }
 
   .page__inner-wrap {
