@@ -7,11 +7,6 @@
    ========================================================================== */
 
 .sidebar {
-  @include clearfix();
-
-  @include breakpoint($large) {
-    @include span(1 of 4);
-  }
 
   h2, h3, h4, h5, h6 {
     margin-bottom: 0;
