@@ -88,16 +88,13 @@
   }
 
   display: block;
-
+  text-align: center;
 }
 
 .urls {
   list-style: none;
   font-size: 30px;
-
-  @include breakpoint($large) {
-
-  }
+  padding-inline-start: 0;
 
   img {
     width: 15pt;
