@@ -7,7 +7,7 @@
 
 # Site Settings
 locale                   : "en-US"
-title                    : "Hacefresko"
+title                    : "hacefresko"
 title_separator          : "-"
 name                     : &name "Hacefresko"
 description              : &description "A blog about my journey in cybersecurity"
