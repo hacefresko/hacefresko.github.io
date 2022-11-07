@@ -7,8 +7,11 @@
    ========================================================================== */
 
 .sidebar {
-  margin-right: 0;
-  float:left;
+
+  @include breakpoint($large) {
+    margin-right: 0;
+    float:left;
+  }
 
   h2, h3, h4, h5, h6 {
     margin-bottom: 0;
@@ -48,14 +51,15 @@
 
 .author__avatar {
   font-size: 10pt;
-  display: table-cell;
-  width: 36px;
-  // set width only, for non-square avatars
-  // height: 36px;
-
   display: block;
   width: auto;
   height: auto;
+
+  text-align: center;
+
+  @include breakpoint($large) {
+    text-align: left;
+  }
 
   img {
     max-width: 175px;
