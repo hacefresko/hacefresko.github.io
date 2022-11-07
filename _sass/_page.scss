@@ -10,7 +10,10 @@
   animation-delay: 0.35s;
   padding-left: 1em;
   padding-right: 1em;
-  max-width: 90%;
+
+  @include breakpoint($large) {
+    max-width: 90%;
+  }
 }
 
 .page {
