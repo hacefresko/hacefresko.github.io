@@ -9,9 +9,9 @@
   animation-delay: 0.35s;
   padding-left: 1em;
   padding-right: 1em;
-
+  margin-top: 2em;
+  
   @include breakpoint($large) {
-    margin-top: 2em;
     max-width: 80%;
   }
 }
@@ -35,7 +35,10 @@
 }
 
 .no_author_page {
+  margin-top: 2em;
+
   @include breakpoint($large) {
+    margin-top: 0;
     @include prefix(1.5 of 12);
     @include suffix(1.5 of 12);
   }
