@@ -8,7 +8,8 @@
 
 .sidebar {
 
-  @include breakpoint($large) {
+  @include breakpoint($medium) {
+    margin-left: 10%;
     margin-right: 0;
     float:left;
   }
@@ -57,7 +58,7 @@
 
   text-align: center;
 
-  @include breakpoint($large) {
+  @include breakpoint($medium) {
     text-align: left;
   }
 
