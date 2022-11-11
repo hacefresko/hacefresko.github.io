@@ -11,13 +11,13 @@
   padding-right: 1em;
   margin-top: 2em;
   
-  @include breakpoint($large) {
+  @include breakpoint($xxx-large) {
     max-width: 2000px;
   }
 }
 
 .page {
-  @include breakpoint($large) {
+  @include breakpoint($xxx-large) {
     @include span(3 of 4 last);
     @include prefix(1 of 12);
     @include suffix(1 of 12);
@@ -37,7 +37,7 @@
 .no_author_page {
   margin-top: 2em;
 
-  @include breakpoint($large) {
+  @include breakpoint($xxx-large) {
     margin-top: 0;
     @include prefix(1.5 of 12);
     @include suffix(1.5 of 12);
