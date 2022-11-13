@@ -238,19 +238,19 @@ After this initial contact, I started looking for bugs. Since I'm a huge noob wi
 
 Function `exec_and_read_json` uses `popen` to execute commands:
  
-<img src="/images/2022-02-11/exec_and_get_json.png" alt="exec_and_read_json" style="width: 600px;display: block;margin-left: auto;margin-right: auto;"/>
+<img src="/images/2022-02-11/exec_and_get_json.png" alt="exec_and_read_json" style="width: 800px;display: block;margin-left: auto;margin-right: auto;"/>
 
 `exec_and_read_json` is used by 2 unnamed functions, which I named `set_language` and `wifi_connect`. They respectively deal with language and WiFi configuration (obviously). `wifi_connect` seems to parse single quotes (`'`), however, `set_language` doesn't. This means that if we can control the input for the `set_language` function, we can successfully inject our own commands.
 
-<img src="/images/2022-02-11/wifi_connect.png" alt="wifi_connect" style="width: 600px;display: block;margin-left: auto;margin-right: auto;"/>
+<img src="/images/2022-02-11/wifi_connect.png" alt="wifi_connect" style="width: 800px;display: block;margin-left: auto;margin-right: auto;"/>
 
-<img src="/images/2022-02-11/set_language.png" alt="set_language" style="width: 700px;display: block;margin-left: auto;margin-right: auto;"/>
+<img src="/images/2022-02-11/set_language.png" alt="set_language" style="width: 800px;display: block;margin-left: auto;margin-right: auto;"/>
 
 Function `set_language` is used by `uh_slp_proto_request`, the function I mentioned before, which passes as input some parsed data received from the user.
 
-<img src="/images/2022-02-11/main_func_1.png" alt="main_func_1" style="width: 700px;display: block;margin-left: auto;margin-right: auto;"/>
+<img src="/images/2022-02-11/main_func_1.png" alt="main_func_1" style="width: 800px;display: block;margin-left: auto;margin-right: auto;"/>
 
-<img src="/images/2022-02-11/main_func_2.png" alt="main_func_2" style="width: 700px;display: block;margin-left: auto;margin-right: auto;"/>
+<img src="/images/2022-02-11/main_func_2.png" alt="main_func_2" style="width: 800px;display: block;margin-left: auto;margin-right: auto;"/>
 
 To parse the user data, `uh_slp_proto_request` checks if it is a valid JSON object. Then, it gets a string value identified by key `"method"` and a dictionary value identified by `"params"` (at least that is what I think, since function call could not be resolved by Ghidra but seemed to work this way). Depending on the selected method, `uh_slp_proto_request` selects the function which will be called.
 
