@@ -42,7 +42,9 @@
 }
 
 .masthead__menu-item {
-  font-size: $type-size-1;
+  @include breakpoint($x-large) {
+    font-size: $type-size-2;
+  }
   display: block;
   list-style-type: none;
   white-space: nowrap;
