@@ -76,11 +76,7 @@
   }
 
   p, li, dl {
-    font-size: $type-size-5 ;
-
-    @include breakpoint($large) {
-      font-size: $type-size-5 ;
-    }
+    font-size: $type-size-5;
   }
 
   /* paragraph indents */
