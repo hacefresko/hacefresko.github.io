@@ -38,6 +38,7 @@
   margin-top: 2em;
 
   @include breakpoint($xxx-large) {
+    max-width: 1800px;
     margin-top: 0;
     @include prefix(1.5 of 12);
     @include suffix(1.5 of 12);
@@ -76,7 +77,7 @@
   }
 
   p, li, dl {
-    font-size: $type-size-5;
+    font-size: $type-size-4;
   }
 
   /* paragraph indents */
