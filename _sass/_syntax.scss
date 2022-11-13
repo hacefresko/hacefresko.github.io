@@ -24,10 +24,13 @@ div.highlighter-rouge, figure.highlight {
   }
 
   .highlight {
+    @include breakpoint($medium) {
+      font-size: $type-size-5;
+    }
+    font-size: $type-size-6;
     padding: 4px;
     margin: 0;
     font-family: $monospace;
-    font-size: $type-size-5;
     line-height: 1;
   }
 }
