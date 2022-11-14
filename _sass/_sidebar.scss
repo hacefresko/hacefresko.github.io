@@ -8,7 +8,7 @@
 
 .sidebar {
   font-size: $type-size-7;
-  
+
   @include breakpoint($large) {
     margin-left: 0;
     margin-right: 0;
@@ -105,7 +105,6 @@
     padding-top: 2px;
     padding-bottom: 2px;
     color: inherit;
-    font-size: $type-size-5;
     text-decoration: none;
 
     &:hover {
