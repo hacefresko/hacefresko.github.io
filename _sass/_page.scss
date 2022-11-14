@@ -11,7 +11,7 @@
   padding-right: 1em;
   margin-top: 2em;
   
-  @include breakpoint($large) {
+  @include breakpoint($medium) {
     max-width: 1500px;
   }
 }
@@ -37,7 +37,7 @@
 .no_author_page {
   margin-top: 2em;
 
-  @include breakpoint($large) {
+  @include breakpoint($medium) {
     margin-top: 0;
     @include prefix(2 of 12);
     @include suffix(2 of 12);
