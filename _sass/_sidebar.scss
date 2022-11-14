@@ -25,7 +25,7 @@
 
   p, li {
     font-family: $sans-serif;
-    @include breakpoint($medium) {
+    @include breakpoint($small) {
       font-size: $type-size-4;
     }
     font-size: $type-size-5;

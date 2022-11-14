@@ -425,7 +425,7 @@
   li > ul li {
     display: none;
 
-    @include breakpoint($medium) {
+    @include breakpoint($small) {
       display: block;
     }
   }
