@@ -7,11 +7,13 @@
    ========================================================================== */
 
 .sidebar {
-
+  font-size: $type-size-7;
+  
   @include breakpoint($large) {
-    margin-left: 9%;
+    margin-left: 0;
     margin-right: 0;
     float:left;
+    font-size: $type-size-6;
   }
 
   h2, h3, h4, h5, h6 {
@@ -25,10 +27,6 @@
 
   p, li {
     font-family: $sans-serif;
-    @include breakpoint($medium) {
-      font-size: $type-size-6;
-    }
-    font-size: $type-size-7;
     line-height: 1.5;
   }
 }

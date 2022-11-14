@@ -12,14 +12,14 @@
   margin-top: 2em;
   
   @include breakpoint($large) {
-    max-width: 2000px;
+    max-width: 1500px;
   }
 }
 
 .page {
   @include breakpoint($large) {
     @include span(3 of 4 last);
-    @include prefix(0.5 of 12);
+    @include prefix(0.2 of 12);
     @include suffix(1 of 12);
   }
 
@@ -38,10 +38,9 @@
   margin-top: 2em;
 
   @include breakpoint($large) {
-    max-width: 1800px;
     margin-top: 0;
-    @include prefix(1.5 of 12);
-    @include suffix(1.5 of 12);
+    @include prefix(2 of 12);
+    @include suffix(2 of 12);
   }
 
   .page__inner-wrap {

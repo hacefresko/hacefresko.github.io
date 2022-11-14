@@ -42,7 +42,7 @@
 }
 
 .masthead__menu-item {
-  @include breakpoint($medium) {
+  @include breakpoint($large) {
     font-size: $type-size-4;
   }
   display: block;
