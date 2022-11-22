@@ -30,22 +30,31 @@ h1, h2, h3, h4, h5, h6 {
 
 h1 {
   margin-top: 0;
-  @include breakpoint($small) {
+  @include breakpoint($x-large) {
     font-size: $type-size-2;
+  }
+  @include breakpoint($small) {
+    font-size: $type-size-3;
   }
   font-size: $type-size-4;
 }
 
 h2 {
-  @include breakpoint($small) {
+  @include breakpoint($x-large) {
     font-size: $type-size-3;
+  }
+  @include breakpoint($small) {
+    font-size: $type-size-4;
   }
   font-size: $type-size-5;
 }
 
 h3 {
-  @include breakpoint($small) {
+  @include breakpoint($x-large) {
     font-size: $type-size-4;
+  }
+  @include breakpoint($small) {
+    font-size: $type-size-5;
   }
   font-size: $type-size-6;
 }

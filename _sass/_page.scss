@@ -71,7 +71,7 @@
   }
 
   p, li, dl {
-    @include breakpoint($medium) {
+    @include breakpoint($x-large) {
       font-size: $type-size-5;
     }
     font-size: $type-size-6;
