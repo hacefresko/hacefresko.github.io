@@ -71,7 +71,10 @@
   }
 
   p, li, dl {
-    @include breakpoint(between, $small $xxx-large) {
+    @media (min-width: $xxx-large) {
+      font-size: $type-size-5;
+    }
+    @media (min-width: $small) {
       font-size: $type-size-6;
     }
     font-size: $type-size-5;
