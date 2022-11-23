@@ -71,10 +71,7 @@
   }
 
   p, li, dl {
-    @include breakpoint($xxx-large) {
-      font-size: $type-size-5;
-    }
-    @include breakpoint($small) {
+    @include breakpoint(from $small to $xxx-large) {
       font-size: $type-size-6;
     }
     font-size: $type-size-5;
