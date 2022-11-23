@@ -43,15 +43,10 @@
 .no_author_page {
   margin-top: 2em;
 
-  @media only screen and (min-width: $medium) and (max-width: $xx-large) {
+  @media only screen and (min-width: $medium) {
     margin-top: 0;
-    @include prefix(3 of 10);
-    @include suffix(3 of 10);
-  }
-  @media only screen and (min-width: $xx-large) {
-    margin-top: 0;
-    @include prefix(1 of 10);
-    @include suffix(1 of 10);
+    @include prefix(1.5 of 10);
+    @include suffix(1.5 of 10);
   }
 
   .page__inner-wrap {
