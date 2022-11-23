@@ -71,10 +71,10 @@
   }
 
   p, li, dl {
-    @media (min-width: $xxx-large) {
+    @media only screen and (min-width: $xx-large) {
       font-size: $type-size-5;
     }
-    @media (min-width: $small) {
+    @media only screen and (min-width: $medium) {
       font-size: $type-size-6;
     }
     font-size: $type-size-5;
