@@ -10,17 +10,23 @@
   padding-left: 1em;
   padding-right: 1em;
   margin-top: 2em;
-  
-  @include breakpoint($medium) {
+
+  @media only screen and (min-width: $large) and (max-width: $xx-large) {
+    max-width: 1000px;
+  }
+  @media only screen and (min-width: $xx-large) {
     max-width: 1500px;
   }
 }
 
 .page {
-  @include breakpoint($large) {
+  @media only screen and (min-width: $large) and (max-width: $xx-large) {
+    @include span(2 of 3 last);
+    @include suffix(1 of 10);
+  }
+  @media only screen and (min-width: $xx-large) {
     @include span(3 of 4 last);
-    @include prefix(0.2 of 12);
-    @include suffix(1 of 12);
+    @include suffix(1 of 10);
   }
 
   .page__inner-wrap {
@@ -37,10 +43,15 @@
 .no_author_page {
   margin-top: 2em;
 
-  @include breakpoint($medium) {
+  @media only screen and (min-width: $medium) and (max-width: $xx-large) {
     margin-top: 0;
-    @include prefix(2 of 12);
-    @include suffix(2 of 12);
+    @include prefix(3 of 10);
+    @include suffix(3 of 10);
+  }
+  @media only screen and (min-width: $xx-large) {
+    margin-top: 0;
+    @include prefix(1 of 10);
+    @include suffix(1 of 10);
   }
 
   .page__inner-wrap {
@@ -68,16 +79,6 @@
   h2 {
     padding-bottom: 0.5em;
     border-bottom: 1px solid $border-color;
-  }
-
-  p, li, dl {
-    font-size: $type-size-5;
-    @media only screen and (min-width: $medium) and (max-width: $xx-large){
-      font-size: $type-size-6;
-    }
-    @media only screen and (min-width: $xx-large) {
-      font-size: $type-size-5;
-    }
   }
 
   /* paragraph indents */

@@ -21,6 +21,18 @@ body {
   }
 }
 
+p, li, dl {
+  margin-bottom: 1.3em;
+
+  font-size: $type-size-5;
+  @media only screen and (min-width: $medium) and (max-width: $xx-large){
+    font-size: $type-size-6;
+  }
+  @media only screen and (min-width: $xx-large) {
+    font-size: $type-size-5;
+  }
+}
+
 h1, h2, h3, h4, h5, h6 {
   margin: 2em 0 0.5em;
   line-height: 1.2;
@@ -30,33 +42,33 @@ h1, h2, h3, h4, h5, h6 {
 
 h1 {
   margin-top: 0;
-  @media only screen and (min-width: $medium) {
+  font-size: $type-size-2;
+  @media only screen and (min-width: $medium) and (max-width: $xx-large){
     font-size: $type-size-3;
   }
   @media only screen and (min-width: $xx-large) {
     font-size: $type-size-2;
   }
-  font-size: $type-size-2;
 }
 
 h2 {
-  @media only screen and (min-width: $medium) {
+  font-size: $type-size-3;
+  @media only screen and (min-width: $medium) and (max-width: $xx-large){
     font-size: $type-size-4;
   }
   @media only screen and (min-width: $xx-large) {
     font-size: $type-size-3;
   }
-  font-size: $type-size-3;
 }
 
 h3 {
-  @media only screen and (min-width: $medium) {
+  font-size: $type-size-4;
+  @media only screen and (min-width: $medium) and (max-width: $xx-large){
     font-size: $type-size-5;
   }
   @media only screen and (min-width: $xx-large) {
     font-size: $type-size-4;
   }
-  font-size: $type-size-4;
 }
 
 h4 {
@@ -73,10 +85,6 @@ h6 {
 
 small, .small {
   font-size: $type-size-6;
-}
-
-p {
-  margin-bottom: 1.3em;
 }
 
 u,
