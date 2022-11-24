@@ -11,8 +11,11 @@
   padding-right: 1em;
   margin-top: 2em;
 
-  @media only screen and (min-width: $large) and (max-width: $xx-large) {
+  @media only screen and (min-width: $large) and (max-width: $x-large) {
     max-width: 1000px;
+  }
+  @media only screen and (min-width: $x-large) and (max-width: $xx-large) {
+    max-width: 1250px;
   }
   @media only screen and (min-width: $xx-large) {
     max-width: 1500px;
@@ -20,8 +23,12 @@
 }
 
 .page {
-  @media only screen and (min-width: $large) and (max-width: $xx-large) {
+  @media only screen and (min-width: $large) and (max-width: $x-large) {
     @include span(2 of 3 last);
+    @include suffix(1 of 10);
+  }
+  @media only screen and (min-width: $x-large) and (max-width: $xx-large) {
+    @include span(7 of 10 last);
     @include suffix(1 of 10);
   }
   @media only screen and (min-width: $xx-large) {
