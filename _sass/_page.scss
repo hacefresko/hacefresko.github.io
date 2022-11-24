@@ -45,10 +45,9 @@
 }
 
 .no_author_page {
-  margin-top: 2em;
+  margin-top: 5%;
 
   @media only screen and (min-width: $medium) {
-    margin-top: 0;
     @include prefix(1.5 of 10);
     @include suffix(1.5 of 10);
   }
