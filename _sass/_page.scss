@@ -9,7 +9,6 @@
   animation-delay: 0.35s;
   padding-left: 1em;
   padding-right: 1em;
-  margin-top: 2em;
 
   @media only screen and (min-width: $large) and (max-width: $x-large) {
     max-width: 1000px;
@@ -23,6 +22,8 @@
 }
 
 .page {
+  margin-top: 5%;
+
   @media only screen and (min-width: $large) and (max-width: $xx-large) {
     @include span(2 of 3 last);
     @include suffix(1 of 12);

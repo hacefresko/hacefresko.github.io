@@ -9,12 +9,15 @@
 .sidebar {
   font-size: $type-size-7;
 
-  @include breakpoint($large) {
+  @media only screen and (min-width: $large) and (max-width: $xx-large) {
     margin-left: 2%;
     margin-right: 0;
     float:left;
+    font-size: 0.7em;
   }
-  font-size: 0.8em;
+  @media only screen and (min-width: $xx-large) {
+    font-size: 0.9em;
+  }
 
   h2, h3, h4, h5, h6 {
     margin-bottom: 0;
@@ -59,6 +62,7 @@
   text-align: center;
 
   @include breakpoint($large) {
+    margin-top: 20%;
     text-align: left;
   }
 }
