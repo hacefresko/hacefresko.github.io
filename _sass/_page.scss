@@ -23,17 +23,13 @@
 }
 
 .page {
-  @media only screen and (min-width: $large) and (max-width: $x-large) {
+  @media only screen and (min-width: $large) and (max-width: $xx-large) {
     @include span(2 of 3 last);
-    @include suffix(1 of 10);
-  }
-  @media only screen and (min-width: $x-large) and (max-width: $xx-large) {
-    @include span(7 of 10 last);
-    @include suffix(1 of 10);
+    @include suffix(1 of 12);
   }
   @media only screen and (min-width: $xx-large) {
     @include span(3 of 4 last);
-    @include suffix(1 of 10);
+    @include suffix(1 of 12);
   }
 
   .page__inner-wrap {
