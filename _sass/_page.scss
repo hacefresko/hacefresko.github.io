@@ -83,6 +83,18 @@
     border-bottom: 1px solid $border-color;
   }
 
+  p, li, dl {
+    margin-bottom: 1.3em;
+  
+    font-size: $type-size-5;
+    @media only screen and (min-width: $medium) and (max-width: $xx-large){
+      font-size: $type-size-6;
+    }
+    @media only screen and (min-width: $xx-large) {
+      font-size: $type-size-5;
+    }
+  }
+
   /* paragraph indents */
   p {
     margin: 0 0 $indent-var;

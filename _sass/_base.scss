@@ -21,18 +21,6 @@ body {
   }
 }
 
-p, li, dl {
-  margin-bottom: 1.3em;
-
-  font-size: $type-size-5;
-  @media only screen and (min-width: $medium) and (max-width: $xx-large){
-    font-size: $type-size-6;
-  }
-  @media only screen and (min-width: $xx-large) {
-    font-size: $type-size-5;
-  }
-}
-
 h1, h2, h3, h4, h5, h6 {
   margin: 2em 0 0.5em;
   line-height: 1.2;
