@@ -10,12 +10,12 @@ div.highlighter-rouge, figure.highlight {
   box-shadow: $box-shadow;
 
   .highlight {
-    font-size: $type-size-5;
+    font-size: $type-size-6;
     @media only screen and (min-width: $medium) and (max-width: $xx-large){
-      font-size: $type-size-6;
+      font-size: $type-size-7;
     }
     @media only screen and (min-width: $xx-large) {
-      font-size: $type-size-5;
+      font-size: $type-size-6;
     }
     padding: 4px;
     margin: 0;
