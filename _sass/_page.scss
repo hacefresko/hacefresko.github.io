@@ -29,7 +29,7 @@
     @include suffix(1 of 12);
   }
   @media only screen and (min-width: $xx-large) {
-    @include span(3 of 4 last);
+    @include span(7 of 10 last);
     @include suffix(1 of 12);
   }
 

@@ -8,7 +8,6 @@
 
 .sidebar {
   font-size: 0.9em;
-  margin-left: 2%;
   margin-right: 0;
   float:left;
 
@@ -17,6 +16,7 @@
     float:none;
   }
   @media only screen and (min-width: $large) and (max-width: $xx-large) {
+    margin-left: 2%;
     font-size: 0.7em;
   }
 
