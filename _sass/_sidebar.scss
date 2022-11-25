@@ -7,16 +7,17 @@
    ========================================================================== */
 
 .sidebar {
-  font-size: $type-size-7;
+  font-size: 0.9em;
+  margin-left: 2%;
+  margin-right: 0;
+  float:left;
 
-  @media only screen and (min-width: $large) and (max-width: $xx-large) {
-    margin-left: 2%;
-    margin-right: 0;
-    float:left;
-    font-size: 0.7em;
+  @media only screen and (max-width: $large){
+    margin-left: 0;
+    float:none;
   }
-  @media only screen and (min-width: $xx-large) {
-    font-size: 0.9em;
+  @media only screen and (min-width: $large) and (max-width: $xx-large) {
+    font-size: 0.7em;
   }
 
   h2, h3, h4, h5, h6 {
