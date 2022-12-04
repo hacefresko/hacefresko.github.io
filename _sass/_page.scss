@@ -10,11 +10,8 @@
   padding-left: 1em;
   padding-right: 1em;
 
-  @media only screen and (min-width: $large) and (max-width: $x-large) {
+  @media only screen and (min-width: $large) and (max-width: $xx-large) {
     max-width: 1000px;
-  }
-  @media only screen and (min-width: $x-large) and (max-width: $xx-large) {
-    max-width: 1250px;
   }
   @media only screen and (min-width: $xx-large) {
     max-width: 1500px;
