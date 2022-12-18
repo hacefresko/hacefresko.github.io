@@ -45,8 +45,8 @@
   margin-top: 5%;
 
   @media only screen and (min-width: $medium) {
-    @include prefix(1 of 10);
-    @include suffix(1 of 10);
+    @include prefix(1.5 of 10);
+    @include suffix(1.5 of 10);
   }
 
   .page__inner-wrap {
