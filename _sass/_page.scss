@@ -32,12 +32,36 @@
   }
 }
 
+.all-posts-link {
+  @media only screen and (min-width: $large) and (max-width: $xx-large) {
+    width: 25%;
+  }
+  margin-right: 0;
+  float:left;
+
+  a {
+    font-weight: bolder;
+    display: block;
+    width: auto;
+    height: auto;
+    text-align: center;
+    margin-bottom: 20%;
+    font-size: $type-size-4;
+
+    @include breakpoint($large) {
+      margin-top: 50%;
+      font-size: $type-size-5;
+    }
+  }
+}
+
 .no_author_page {
   margin-top: 5%;
 
   @media only screen and (min-width: $large) {
-    @include prefix(2.5 of 10);
-    @include suffix(2.5 of 10);
+    max-width: 50%;
+    margin-right: 25%;
+    float: right
   }
 
   .page__inner-wrap {
