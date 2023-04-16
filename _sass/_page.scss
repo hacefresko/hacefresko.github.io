@@ -9,25 +9,16 @@
   animation-delay: 0.35s;
   padding-left: 1em;
   padding-right: 1em;
-
-  @media only screen and (min-width: $large) and (max-width: $xx-large) {
-    max-width: 1000px;
-  }
-  @media only screen and (min-width: $xx-large) {
-    max-width: 1500px;
-  }
+  max-width: 100%;
 }
 
 .page {
-  margin-top: 5%;
+  margin-top: 3%;
 
-  @media only screen and (min-width: $large) and (max-width: $xx-large) {
-    @include span(2 of 3 last);
-    @include suffix(1 of 12);
-  }
-  @media only screen and (min-width: $xx-large) {
-    @include span(7 of 10 last);
-    @include suffix(1 of 12);
+  @media only screen and (min-width: $large) {
+    max-width: 40%;
+    margin-right: 30%;
+    float: right
   }
 
   .page__inner-wrap {
@@ -44,9 +35,9 @@
 .no_author_page {
   margin-top: 5%;
 
-  @media only screen and (min-width: $medium) {
-    @include prefix(1.5 of 10);
-    @include suffix(1.5 of 10);
+  @media only screen and (min-width: $large) {
+    @include prefix(2.5 of 10);
+    @include suffix(2.5 of 10);
   }
 
   .page__inner-wrap {

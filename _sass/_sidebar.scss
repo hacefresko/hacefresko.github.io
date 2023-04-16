@@ -16,7 +16,7 @@
     float:none;
   }
   @media only screen and (min-width: $large) and (max-width: $xx-large) {
-    margin-left: 2%;
+    width: 30%;
     font-size: 0.7em;
   }
 
@@ -60,12 +60,10 @@
   display: block;
   width: auto;
   height: auto;
-
   text-align: center;
 
   @include breakpoint($large) {
-    margin-top: 35%;
-    text-align: left;
+    margin-top: 10%;
   }
 }
 
