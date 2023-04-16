@@ -106,13 +106,13 @@
 
   dt {
     margin-top: 1em;
-    font-family: $sans-serif;
+    font-family: $global-font-family;
     font-weight: bold;
   }
 
   dd {
     margin-left: 1em;
-    font-family: $sans-serif;
+    font-family: $global-font-family;
     font-size: $type-size-6;
   }
 
@@ -250,7 +250,7 @@
 .page__meta {
   margin-top: 2em;
   color: mix(#fff, $gray, 25%);
-  font-family: $sans-serif;
+  font-family: $global-font-family;
 
   p {
     margin: 0;

@@ -30,7 +30,7 @@
   }
 
   p, li {
-    font-family: $sans-serif;
+    font-family: $global-font-family;
     line-height: 1.5;
   }
 }
@@ -71,7 +71,7 @@
 .urls-wrapper {
   position: relative;
   display: table-cell;
-  font-family: $sans-serif;
+  font-family: $global-font-family;
   z-index: 10;
   position: relative;
   cursor: pointer;
