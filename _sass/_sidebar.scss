@@ -7,7 +7,7 @@
    ========================================================================== */
 
 .sidebar {
-  font-size: 0.9em;
+  font-size: 0.7em;
   margin-right: 0;
   float:left;
 
@@ -15,9 +15,12 @@
     margin-left: 0;
     float:none;
   }
-  @media only screen and (min-width: $large){
+  @media only screen and (min-width: $large) and (max-width: $xx-large){
     width: 30%;
-    font-size: 0.7em;
+  }
+  @media only screen and (min-width: $xx-large){
+    width: 35%;
+    font-size: 0.9em;
   }
 
   h2, h3, h4, h5, h6 {

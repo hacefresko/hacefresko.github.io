@@ -16,9 +16,16 @@
   margin-top: 3%;
 
   @media only screen and (min-width: $large) {
+    float: right
+  }
+
+  @media only screen and (min-width: $large) and (max-width: $xx-large){
     max-width: 40%;
     margin-right: 30%;
-    float: right
+  }
+  @media only screen and (min-width: $xx-large) {
+    max-width: 30%;
+    margin-right: 35%;
   }
 
   .page__inner-wrap {
@@ -59,9 +66,16 @@
   margin-top: 5%;
 
   @media only screen and (min-width: $large) {
+    float: right
+  }
+
+  @media only screen and (min-width: $large) and (max-width: $xx-large){
     max-width: 50%;
     margin-right: 25%;
-    float: right
+  }
+  @media only screen and (min-width: $xx-large) {
+    max-width: 40%;
+    margin-right: 30%;
   }
 
   .page__inner-wrap {
