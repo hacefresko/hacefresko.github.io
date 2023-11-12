@@ -1,7 +1,6 @@
 ---
 permalink: /
-title: "Recent Posts"
-excerpt: "Recent posts in the blog"
+title: "Posts"
 author_profile: true
 redirect_from: 
   - /posts/
