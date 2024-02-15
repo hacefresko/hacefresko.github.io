@@ -12,6 +12,10 @@
   max-width: 100%;
 }
 
+.no-banner {
+   margin-top: 5%
+}
+
 .page {
   @media only screen and (min-width: $large) {
     float: right
