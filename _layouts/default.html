@@ -27,11 +27,12 @@ layout: compress
 
     <div id="main" role="main">
 
-      {% if page.main %}
+      {% if page.banner %}
         {% include banner.html %}     
       {% endif%}
       
-      <article class="page{% unless page.main %} no-banner {% endunless %}" itemscope itemtype="http://schema.org/CreativeWork">
+      <article class="page{% unless page.banner %} no-banner {% endunless %}" itemscope itemtype="http://schema.org/CreativeWork">
+        {% if page.go_back %}<a href="/">&lt; Go back</a>{% endif%}
         {% if page.title %}<meta itemprop="headline" content="{{ page.title | markdownify | strip_html | strip_newlines | escape_once }}">{% endif %}
         {% if page.excerpt %}<meta itemprop="description" content="{{ page.excerpt | markdownify | strip_html | strip_newlines | escape_once }}">{% endif %}
         {% if page.date %}<meta itemprop="datePublished" content="{{ page.date | date: "%B %d, %Y" }}">{% endif %}
