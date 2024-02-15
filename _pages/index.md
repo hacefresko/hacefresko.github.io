@@ -1,5 +1,6 @@
 ---
 permalink: /
+banner: true
 title: "Posts"
 redirect_from: 
   - /posts/
