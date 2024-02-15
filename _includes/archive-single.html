@@ -23,7 +23,7 @@
       {% endif %}
     </h2>
 
-    <div class="page_left">
+    <div class="archive_left">
       {% if post.read_time %}
         <p class="page__meta"><i class="fa fa-clock-o" aria-hidden="true"></i> {% include read-time.html %}</p>
       {% endif %}
@@ -42,7 +42,7 @@
       <p class="archive__item-excerpt" itemprop="description"><p>{{ post.excerpt | markdownify | remove: '<p>' | remove: '</p>' }}<strong><a href="{{ base_path }}{{ post.url }}" rel="permalink"> Read more</a></strong></p></p>
       {% endif %}
     </div>
-    <div class="page_right">
+    <div class="archive_right">
       <div class="archive__item-teaser">
         <img src=
           {% if teaser contains "://" %}
