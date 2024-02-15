@@ -64,10 +64,6 @@
   width: auto;
   height: auto;
   text-align: center;
-
-  @include breakpoint($large) {
-    margin-top: 25%;
-  }
 }
 
 .urls-wrapper {
