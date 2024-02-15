@@ -27,8 +27,10 @@ layout: compress
 
     <div id="main" role="main">
 
-      {% if page.banner %}
+      {% if page.main %}
         {% include banner.html %}     
+      {% else %}
+        <a href="/">&lt; Go Back</a>
       {% endif%}
       
       <article {% if page.banner %}class="page"{%else%}class="page no-banner"{% endif%} itemscope itemtype="http://schema.org/CreativeWork">
