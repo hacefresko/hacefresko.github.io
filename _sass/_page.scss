@@ -433,7 +433,7 @@
 
 .banner{
   @media only screen and (min-width: $large) {
-    float: $type-size-6;
+    font-size: $type-size-6;
   }
   font-size: $type-size-7;
   font-weight: bolder;
