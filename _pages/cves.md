@@ -1,6 +1,7 @@
 ---
 permalink: /cves
 title: "CVEs"
+banner: true
 author_profile: true
 redirect_from: 
   - /cves/
