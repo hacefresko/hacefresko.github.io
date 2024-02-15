@@ -12,10 +12,6 @@
   max-width: 100%;
 }
 
-.no-banner {
-   margin-top: 5%
-}
-
 .page {
   @media only screen and (min-width: $large) {
     float: right
@@ -436,14 +432,18 @@
    ========================================================================== */
 
 .banner{
-  font-size: $type-size-6;
+  font-size: $type-size-7;
+  @media only screen and (min-width: $large) {
+    float: $type-size-6;
+  }
   font-weight: bolder;
-  display: block;
-  width: auto;
-  height: auto;
   text-align: center;
 }
 
 .urls {
    margin: 0;
+}
+
+.no-banner {
+   margin-top: 5%
 }
