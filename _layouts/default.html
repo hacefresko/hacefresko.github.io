@@ -32,12 +32,17 @@ layout: compress
       {% endif%}
       
       <article class="page{% unless page.banner or page.go_back %} no-header {% endunless %}" itemscope itemtype="http://schema.org/CreativeWork">
-        {% if page.go_back %}<a href="/" class="go_back">&lt; Go back</a>{% endif%}
         {% if page.title %}<meta itemprop="headline" content="{{ page.title | markdownify | strip_html | strip_newlines | escape_once }}">{% endif %}
         {% if page.excerpt %}<meta itemprop="description" content="{{ page.excerpt | markdownify | strip_html | strip_newlines | escape_once }}">{% endif %}
         {% if page.date %}<meta itemprop="datePublished" content="{{ page.date | date: "%B %d, %Y" }}">{% endif %}
         {% if page.modified %}<meta itemprop="dateModified" content="{{ page.modified | date: "%B %d, %Y" }}">{% endif %}
 
+        {% if page.go_back %}
+          <div class="go_back">
+            <a href="/">&lt; Go back</a>
+          </div>
+        {% endif%}
+        
         <div class="page__inner-wrap">
           {% unless page.header.overlay_color or page.header.overlay_image %}
             <header>
