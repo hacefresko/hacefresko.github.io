@@ -432,10 +432,10 @@
    ========================================================================== */
 
 .banner{
-  font-size: $type-size-7;
   @media only screen and (min-width: $large) {
     float: $type-size-6;
   }
+  font-size: $type-size-7;
   font-weight: bolder;
   text-align: center;
 }
