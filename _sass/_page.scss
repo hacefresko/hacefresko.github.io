@@ -58,34 +58,6 @@
     }
   }
 }
-
-.no_author_page {
-  margin-top: 5%;
-
-  @media only screen and (min-width: $large) {
-    float: right
-  }
-
-  @media only screen and (min-width: $large) and (max-width: $xx-large){
-    max-width: 50%;
-    margin-right: 25%;
-  }
-  @media only screen and (min-width: $xx-large) {
-    max-width: 40%;
-    margin-right: 30%;
-  }
-
-  .page__inner-wrap {
-    @include full();
-
-    .page__content,
-    .page__meta,
-    .page__share {
-      @include full();
-    }
-  }
-}
-
 .page__title {
   margin-top: 0;
   line-height: 1;
