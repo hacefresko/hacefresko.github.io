@@ -52,8 +52,7 @@
   }
 
   code {
-    background-color: $code-background-color;
-    color: #24fe1a; 
+    background-color: mix(#fff, $notice-color, 95%);
   }
 
   ul {
