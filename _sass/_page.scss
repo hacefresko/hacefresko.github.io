@@ -9,7 +9,7 @@
   animation-delay: 0.35s;
   padding-left: 1em;
   padding-right: 1em;
-  width: 100%;
+  max-width: 100%;
 }
 
 .page {
@@ -18,11 +18,11 @@
   }
 
   @media only screen and (min-width: $large) and (max-width: $xx-large){
-    width: 50%;
+    max-width: 50%;
     margin-right: 25%;
   }
   @media only screen and (min-width: $xx-large) {
-    width: 40%;
+    max-width: 40%;
     margin-right: 30%;
   }
 
