@@ -9,7 +9,7 @@
   animation-delay: 0.35s;
   padding-left: 1em;
   padding-right: 1em;
-  max-width: 100%;
+  width: 100%;
 }
 
 .page {
@@ -18,11 +18,11 @@
   }
 
   @media only screen and (min-width: $large) and (max-width: $xx-large){
-    max-width: 50%;
+    width: 50%;
     margin-right: 25%;
   }
   @media only screen and (min-width: $xx-large) {
-    max-width: 40%;
+    width: 40%;
     margin-right: 30%;
   }
 
@@ -432,6 +432,10 @@
    ========================================================================== */
 
 .banner{
+  a {
+    color: inherit;
+    text-decoration: none;
+  }
   @media only screen and (min-width: $large) {
     font-size: $type-size-6;
   }
