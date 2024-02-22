@@ -17,11 +17,11 @@
     float: right
   }
 
-  @media only screen and (min-width: $large) and (max-width: $xx-large){
+  @media only screen and (min-width: $large) and (max-width: $x-large){
     max-width: 50%;
     margin-right: 25%;
   }
-  @media only screen and (min-width: $xx-large) {
+  @media only screen and (min-width: $x-large) {
     max-width: 40%;
     margin-right: 30%;
   }
