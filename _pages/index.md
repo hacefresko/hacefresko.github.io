@@ -3,9 +3,8 @@ permalink: /
 banner: true
 title: "Posts"
 redirect_from: 
+  - /posts
   - /posts/
-  - /about/
-  - /about.html
 ---
 {% include base_path %}
 {% for i in (0..9) %}
