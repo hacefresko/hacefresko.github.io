@@ -1,6 +1,6 @@
 ---
+layout: post
 title: 'LiquidJS SSTI to Arbitrary File Read'
-go_back: true
 date: 2021-10-26
 permalink: /posts/liquidjs-ssti-to-arbitrary-file-read
 tags:

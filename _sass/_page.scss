@@ -9,10 +9,7 @@
   animation-delay: 0.35s;
   padding-left: 1em;
   padding-right: 1em;
-  max-width: 100%;
-}
 
-.page {
   @media only screen and (min-width: $large) {
     float: right
   }
@@ -27,6 +24,18 @@
     max-width: 40%;
     margin-right: 30%;
   }
+}
+
+.menu {
+  margin-bottom: 5%;
+}
+
+.go_back {
+  margin-top: 5%;
+  margin-bottom: 5%;
+}
+
+.page {
 
   .page__inner-wrap {
     @include full();
@@ -446,9 +455,4 @@
 
 .urls {
    margin: 0;
-}
-
-.go_back{
-   margin-top: 5%;
-   margin-bottom: 3%;
 }

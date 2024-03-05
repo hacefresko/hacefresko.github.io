@@ -1,2 +1,6 @@
 # main links links
 main:
+  - title: "Posts"
+    url: /
+  - title: "CVEs"
+    url: /cves    

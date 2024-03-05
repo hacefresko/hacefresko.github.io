@@ -1,0 +1,21 @@
+{% include base_path %}
+
+<div class="menu">
+    <nav id="site-nav" class="greedy-nav">
+        <ul class="visible-links">
+            {% for link in site.data.navigation.main %}
+                <h1 class="menu-item"><a href="{{ link.url }}">{{ link.title }}</a></h1>
+            {% endfor %}
+        </ul>
+        <ul class="hidden-links hidden"></ul>
+    </nav>
+</div>
+
+<script>
+    for (const item of document.getElementsByClassName("menu-item")){
+        let a = item.firstChild
+        if (a.href == location){
+            a.classList.add("current")
+        }
+    }
+</script>

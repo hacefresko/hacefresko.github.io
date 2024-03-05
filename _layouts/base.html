@@ -1,0 +1,33 @@
+---
+layout: compress
+---
+
+{% include base_path %}
+
+<!doctype html>
+<html lang="{{ site.locale | slice: 0,2 }}" class="no-js">
+  <head>
+    {% include head.html %}
+    {% include head/custom.html %}
+  </head>
+
+  <body>
+
+    {% include browser-upgrade.html %}
+
+    {% if page.header.overlay_color or page.header.overlay_image or page.header.image %}
+      {% include page__hero.html %}
+    {% endif %}
+
+    {% if page.url != "/" and site.breadcrumbs %}
+      {% unless paginator %}
+        {% include breadcrumbs.html %}
+      {% endunless %}
+    {% endif %}
+
+    {{ content }}
+
+    {% include scripts.html %}
+
+  </body>
+</html>

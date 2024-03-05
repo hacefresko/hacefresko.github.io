@@ -90,6 +90,9 @@
    ========================================================================== */
 
 .list__item {
+
+  margin-bottom: 6%;
+
   @include breakpoint($medium) {
     padding-right: $right-sidebar-width-narrow;
   }
