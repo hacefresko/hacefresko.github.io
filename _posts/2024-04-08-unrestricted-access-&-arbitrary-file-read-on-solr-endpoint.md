@@ -7,7 +7,7 @@ tags:
   - Bug Bounty
   - Solr
 header:
-  tweet-image: 2024-04-06/passwd.png
+  teaser: 2024-04-06/passwd.png
 ---
 
 {% raw %}
