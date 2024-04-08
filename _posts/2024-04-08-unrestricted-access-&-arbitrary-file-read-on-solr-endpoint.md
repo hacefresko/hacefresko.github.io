@@ -19,7 +19,7 @@ It all started when I received an email from a HackerOne private program saying 
 
 After some recon and many hours figuring out how to register a new account (it only allowed US citizens but didn't specify it), I found an API endpoint that disclosed many URLs from the admin interface. I immediately visited some of them and noticed that they were all accessible for regular users, however, the functionalities in them didn't work because the API endpoints they were using were actually restricted. Although this obviously didn't give me the ability to do anything as an admin, I visited all of the URLs looking for something interesting to look into. Eventually, I found a dashboard that had a completely different look than the rest of the application:
 
-![](/images/2024-04-06/dashboard.png)
+<img src="/images/2024-04-06/dashboard.png" style="display: block;margin-left: auto;margin-right: auto;"/>
 
 Some googling later, I found that this dashboard is a fork of Kibana named [Banana](https://github.com/LucidWorks/banana) and is used to work with Apache Solr, which is a search platform written in Java that usually contains a lot of important data and, therefore, is a very juicy target. So, I looked at the endpoints that the dashboard was using and found the Solr endpoint itself: `/api/solr/banana`. It didn't respond with any data, but it also didn't throw any errors and the response corresponded to that given directly by Solr, so this meant that any user could interact directly with the endpoint. Great, that was worth a look.
 
@@ -29,7 +29,7 @@ After learning about Solr and reading some articles about common vulnerabilities
 
 Although the Solr endpoint could be used by regular users, the information available was restricted to that accessible by each user. As an example, querying *all user data* with `/api/solr/User/select?q=*`, would only gives us **our** user data. This restriction was implemented by also executing a default query containing default conditions such as `only retrieve data belonging to this user`. This behavior could be seen in the raw response from the Solr endpoint, in which the attribute `params` contained a list of the executed queries, named `q`, with two elements: the default query set by the server (` ( tenantId:1 AND ...`) and the query requested by the user, (`*`):
 
-![](/images/2024-04-06/query-filter.png)
+<img src="/images/2024-04-06/query-filter.png" style="width: 700px;display: block;margin-left: auto;margin-right: auto;"/>
 
 This mechanism was not mentioned in any post about hacking Solr and it might even have been custom to this application, so it required some additional tinkering.
 
@@ -39,7 +39,7 @@ One of the *classic* ways to trick Solr into doing some nasty things is by using
 
 This way, I played extensively with the `qt` parameter until I found that the request `/api/solr/User/select?qt=/select?hacked&q=*`, would produce the following response:
 
-![](/images/2024-04-06/query-filter-bypass.png)
+<img src="/images/2024-04-06/query-filter-bypass.png" style="width: 700px;display: block;margin-left: auto;margin-right: auto;"/>
 
 As you can see, the raw response from the Solr endpoint shows only one parameter `q`, instead of two as before, the parameter `qt` and a new parameter `hacked?q` with the contents of the previous restrictive default `q`. What is happening here is something like the following:
 
@@ -51,8 +51,8 @@ As you can see, the raw response from the Solr endpoint shows only one parameter
 
 This way, the default query that restricted access to other user's data gets bypassed, allowing the retrieval of all the information available in the Solr endpoint. In the case of the `User` core, which contained all kinds of personal information, there were 796165 entries. Also, there were other cores mentioned before with critical data such as `UserLoginHistory`, `BusinessEntityAccount`, `EntityPayment`, `PasswordHistory`, etc. Here are some examples of the retrieved data:
 
-<img src="/images/2024-04-06/login-history.png" alt="tapo_cam" style="width: 500px;display: block;margin-left: auto;margin-right: auto;"/>
-<img src="/images/2024-04-06/payments.png" alt="tapo_cam" style="width: 500px;display: block;margin-left: auto;margin-right: auto;"/>
+<img src="/images/2024-04-06/login-history.png" style="width: 600px;display: block;margin-left: auto;margin-right: auto;"/>
+<img src="/images/2024-04-06/payments.png" style="width: 600px;display: block;margin-left: auto;margin-right: auto;"/>
 
 ## Reading files from the server
 
@@ -62,15 +62,15 @@ I ended up looking at the [nuclei templates repository](https://github.com/searc
 
 [One of the techniques](https://github.com/projectdiscovery/nuclei-templates/blob/main/http/vulnerabilities/apache/apache-solr-file-read.yaml) allowed Arbitrary File Read on Solr versions <= 8.8.1 and used the payload `/solr/{{core}}/debug/dump?stream.url=file:///etc/passwd&param=ContentStream` to dump de contents of `/etc/passwd`. In my case, I used the `User` core for testing so it was `/api/solr/User/debug/dump?stream.url=file:///etc/passwd&param=ContentStream`. At first, it didn't work since it seemed like the server was only accepting requests to `/api/solr/User/select`. However, after some tinkering, I was able to use once more the parameter `qt` to rewrite the URL from `/api/solr/User/select` to `/api/solr/User/debug/dump` and sucessfully exfiltrate the contents of `/etc/passwd`! The resulting payload was `/api/solr/User/select?qt=/debug/dump&stream.url=file:///etc/passwd&param=ContentStream`:
 
-![](/images/2024-04-06/passwd.png)
+<img src="/images/2024-04-06/passwd.png" style="width: 700px;display: block;margin-left: auto;margin-right: auto;"/>
 
 Also, this vulnerability allowed me to list all the files inside directories. For example, these are the contents of the root directory `/`:
 
-![](/images/2024-04-06/root_dir.png)
+<img src="/images/2024-04-06/root_dir.png" style="width: 700px;display: block;margin-left: auto;margin-right: auto;"/>
 
 So, I wrote a simple script to easily traverse the file system of the server and found a lot of credentials for other systems of the company, such as databases:
 
-![](/images/2024-04-06/creds.png)
+<img src="/images/2024-04-06/creds.png" style="display: block;margin-left: auto;margin-right: auto;"/>
 
 ## Conclusion
 
