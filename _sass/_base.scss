@@ -134,7 +134,7 @@ tt, code, kbd, samp, pre {
   color: #ffffff;
   font-family: $monospace;
   line-height: 1.25;
-  overflow-wrap: anywhere;
+  word-break: break-all;
 }
 
 pre {
