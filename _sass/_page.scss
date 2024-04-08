@@ -27,7 +27,6 @@
 }
 
 .menu {
-  margin-bottom: 5%;
   position: relative;
 
   h1 {
@@ -289,8 +288,8 @@
    Page meta
    ========================================================================== */
 
-.page__meta {
-  margin-top: 2em;
+.page__meta,
+.page__date {
   color: mix(#fff, $gray, 25%);
   font-family: $global-font-family;
 
