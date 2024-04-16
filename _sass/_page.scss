@@ -24,6 +24,15 @@
     max-width: 40%;
     margin-right: 30%;
   }
+
+  p {
+    @media only screen and (min-width: $large) {
+      font-size: $type-size-5;
+    }
+    @media only screen and (min-width: $large){
+      font-size: $type-size-6;
+    }
+  }
 }
 
 .menu {
@@ -116,8 +125,8 @@
     border-bottom: 1px solid $border-color;
   }
 
-  p, li, dl {  
-    font-size: $type-size-6;
+  li, dl {  
+    font-size: $type-size-5;
   }
 
   /* paragraph indents */
