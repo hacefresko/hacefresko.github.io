@@ -322,3 +322,31 @@ b, i, strong, em, blockquote, p, q, span, figure, img, h1, h2, header, input, a,
   -webkit-transition: $global-transition;
   transition: $global-transition;
 }
+
+/*
+   Banner
+   ========================================================================== */
+
+   .banner{
+    a {
+      color: inherit;
+      text-decoration: none;
+    }
+    @media only screen and (min-width: $large) {
+      font-size: $type-size-6;
+    }
+    font-size: $type-size-7;
+    font-weight: bolder;
+    text-align: center;
+  }
+  
+  .banner pre {
+    color: $text-color;
+    line-height: normal;
+    font-size: 0.5em;
+  }
+  
+  .urls {
+     margin: 0;
+  }
+  
