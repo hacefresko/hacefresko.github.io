@@ -334,7 +334,6 @@ b, i, strong, em, blockquote, p, q, span, figure, img, h1, h2, header, input, a,
 .urls-wrapper {
   position: relative;
   display: table-cell;
-  font-family: $global-font-family;
   z-index: 10;
   position: relative;
   cursor: pointer;
@@ -353,6 +352,7 @@ b, i, strong, em, blockquote, p, q, span, figure, img, h1, h2, header, input, a,
   list-style: none;
   padding-inline-start: 0;
   margin-top: 15pt;
+  margin-bottom: 0;
 
   img {
     @media only screen and (min-width: $large) { 
