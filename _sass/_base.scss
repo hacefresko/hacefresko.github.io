@@ -352,12 +352,15 @@ b, i, strong, em, blockquote, p, q, span, figure, img, h1, h2, header, input, a,
   list-style: none;
   padding-inline-start: 0;
   margin-top: 15pt;
-  margin-bottom: 0;
 
-  img {
-    @media only screen and (min-width: $large) { 
+  @media only screen and (min-width: $large) {
+    margin-bottom: 0;
+    img{
       width: 12pt;
     }
+  }
+
+  img {
     width: 15pt;
     margin-left: 3pt;
     margin-bottom: 4pt;
