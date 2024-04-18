@@ -355,12 +355,12 @@ b, i, strong, em, blockquote, p, q, span, figure, img, h1, h2, header, input, a,
 
   @media only screen and (min-width: $large) {
     margin-bottom: 0;
-    img{
-      width: 12pt;
-    }
   }
 
   img {
+    @media only screen and (min-width: $large) {
+      width: 12pt;
+    }
     width: 15pt;
     margin-left: 3pt;
     margin-bottom: 4pt;
