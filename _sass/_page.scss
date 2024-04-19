@@ -25,7 +25,7 @@
     margin-right: 30%;
   }
 
-  p {
+  p, li {
     @media only screen and (min-width: $large) {
       font-size: $type-size-5;
     }
@@ -123,10 +123,6 @@
   h2 {
     padding-bottom: 0.5em;
     border-bottom: 1px solid $border-color;
-  }
-
-  li, dl {  
-    font-size: $type-size-5;
   }
 
   /* paragraph indents */
