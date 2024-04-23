@@ -26,11 +26,11 @@
   }
 
   p, li {
-    @media only screen and (min-width: $large) {
-      font-size: $type-size-5;
-    }
-    @media only screen and (min-width: $large){
+    @media only screen and (min-width: $large) and (max-width: $x-large){
       font-size: $type-size-6;
+    }
+    @media only screen and (min-width: $x-large) {
+      font-size: $type-size-5;
     }
   }
 }
