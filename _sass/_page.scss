@@ -14,12 +14,12 @@
     float: right
   }
 
-  @media only screen and (min-width: $large) and (max-width: $xx-large){
+  @media only screen and (min-width: $large) and (max-width: $x-large){
     min-width: 50%;
     max-width: 50%;
     margin-right: 25%;
   }
-  @media only screen and (min-width: $xx-large) {
+  @media only screen and (min-width: $x-large) {
     min-width: 40%;
     max-width: 40%;
     margin-right: 30%;
