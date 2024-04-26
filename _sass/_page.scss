@@ -14,22 +14,22 @@
     float: right
   }
 
-  @media only screen and (min-width: $large) and (max-width: $x-large){
+  @media only screen and (min-width: $large) and (max-width: $xx-large){
     min-width: 50%;
     max-width: 50%;
     margin-right: 25%;
   }
-  @media only screen and (min-width: $x-large) {
+  @media only screen and (min-width: $xx-large) {
     min-width: 40%;
     max-width: 40%;
     margin-right: 30%;
   }
 
   p, li {
-    @media only screen and (min-width: $large) and (max-width: $x-large){
+    @media only screen and (min-width: $large) and (max-width: $xx-large){
       font-size: $type-size-6;
     }
-    @media only screen and (min-width: $x-large) {
+    @media only screen and (min-width: $xx-large) {
       font-size: $type-size-5;
     }
   }
