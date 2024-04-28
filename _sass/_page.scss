@@ -24,15 +24,6 @@
     max-width: 40%;
     margin-right: 30%;
   }
-
-  p, li {
-    @media only screen and (min-width: $large) and (max-width: $xx-large){
-      font-size: $type-size-6;
-    }
-    @media only screen and (min-width: $xx-large) {
-      font-size: $type-size-5;
-    }
-  }
 }
 
 .menu {
