@@ -5,7 +5,6 @@ date: 2024-04-06
 permalink: /posts/unrestricted-access-and-arbitrary-file-read-in-solr-endpoint
 tags:
   - Bug Bounty
-  - Solr
 header:
   teaser: 2024-04-06/passwd.png
 ---

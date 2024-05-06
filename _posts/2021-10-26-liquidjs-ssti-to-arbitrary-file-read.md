@@ -5,9 +5,6 @@ date: 2021-10-26
 permalink: /posts/liquidjs-ssti-to-arbitrary-file-read
 tags:
   - Bug Bounty
-  - SSTI
-  - LiquidJS
-  - JavaScript
 header:
   teaser: 2021-10-26/poc_screenshot.jpeg
 ---
