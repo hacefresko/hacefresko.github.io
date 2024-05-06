@@ -83,6 +83,11 @@
     .page__share {
       @include full();
     }
+
+    .page__date {
+      margin-bottom: 2%;
+      margin-top: 2%;
+    }
   }
 }
 
@@ -296,9 +301,6 @@
 .page__date {
   color: mix(#fff, $gray, 25%);
   font-family: $global-font-family;
-
-  margin-bottom: 2%;
-  margin-top: 2%;
 
   a {
     color: inherit;
