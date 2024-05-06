@@ -27,6 +27,13 @@
   }
 }
 
+.archive__item {
+  .page__date{
+    margin-bottom: 2%;
+    margin-top: 2%;
+  }
+}
+
 .archive__subtitle {
   margin: 1.414em 0 0;
   padding-bottom: 0.5em;
@@ -44,13 +51,7 @@
 
   a + a {
     opacity: 0.5;
-  }
-
-  .page__date{
-    margin-bottom: 2%;
-    margin-top: 2%;
-  }
-}
+  }}
 
 /* remove border*/
 .page__content {
