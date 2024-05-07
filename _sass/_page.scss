@@ -73,10 +73,6 @@
   }
 }
 
-.page__tags {
-  text-decoration: underline;
-}
-
 .page {
 
   .page__inner-wrap {
@@ -302,7 +298,7 @@
    ========================================================================== */
 
 .page__meta,
-.page__date {
+.page__header {
   color: mix(#fff, $gray, 25%);
   font-family: $global-font-family;
 
