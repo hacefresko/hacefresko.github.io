@@ -22,7 +22,7 @@
       {% endif %}
     </h2>    
 
-    <p class="page__date"><time datetime="{{ post.date | default: "1900-01-01" | date_to_xmlschema }}">{{ post.date | default: "1900-01-01" | date: "%B %d, %Y" }}</time></p>
+    <p class="page__header"><time class="page__date" datetime="{{ post.date | default: "1900-01-01" | date_to_xmlschema }}">{{ post.date | default: "1900-01-01" | date: "%B %d, %Y" }}</time> - <a>{{ post.tag }}</a></p>
 
     {% if post.excerpt and site.read_more != 'enabled' %}
     <p class="archive__item-excerpt" itemprop="description">{{ post.excerpt | markdownify | truncatewords: 70 | strip_html }}</p>
