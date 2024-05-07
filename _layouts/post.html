@@ -18,7 +18,7 @@ layout: base
         {% unless page.header.overlay_color or page.header.overlay_image %}
         <header>
             <h1 class="page__title" itemprop="headline">{{ page.title | markdownify | remove: "<p>" | remove: "</p>" }}</h1>
-            <p class="page__header"><time class="page__date" datetime="{{ post.date | default: "1900-01-01" | date_to_xmlschema }}">{{ post.date | default: "1900-01-01" | date: "%B %d, %Y" }}</time> - <a>{{ post.tag }}</a></p>
+            <p class="page__header"><time class="page__date" datetime="{{ post.date | default: "1900-01-01" | date_to_xmlschema }}">{{ post.date | default: "1900-01-01" | date: "%B %d, %Y" }}</time> - <span class="page__tags">{{ post.tag }}</span></p>
         </header>
         {% endunless %}
 

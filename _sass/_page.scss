@@ -73,6 +73,10 @@
   }
 }
 
+.page__tags {
+  text-decoration: underline;
+}
+
 .page {
 
   .page__inner-wrap {
@@ -84,7 +88,7 @@
       @include full();
     }
 
-    .page__date {
+    .page__header {
       margin-bottom: 2%;
       margin-top: 2%;
     }
