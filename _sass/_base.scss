@@ -24,10 +24,8 @@ p {
   text-align: justify;
 }
 
-h1, h2, h3, h4, h5, h6 {
-  line-height: 1.2;
-  font-family: $header-font-family;
-  font-weight: bold;
+li {
+  margin-bottom: .5em;
 }
 
 p, li {
@@ -37,6 +35,12 @@ p, li {
   @media only screen and (min-width: $xx-large) {
     font-size: $type-size-5;
   }
+}
+
+h1, h2, h3, h4, h5, h6 {
+  line-height: 1.2;
+  font-family: $header-font-family;
+  font-weight: bold;
 }
 
 h1 {
@@ -270,48 +274,4 @@ figcaption {
 
 svg:not(:root) {
   overflow: hidden;
-}
-
-
-/*
-   Navigation lists
-   ========================================================================== */
-
-/**
- * Removes margins, padding, and bullet points from navigation lists
- *
- * Example usage:
- * <nav>
- *    <ul>
- *      <li><a href="#link-1">Link 1</a></li>
- *      <li><a href="#link-2">Link 2</a></li>
- *      <li><a href="#link-3">Link 3</a></li>
- *    </ul>
- *  </nav>
- */
-
-nav {
-  ul {
-    margin: 0;
-    padding: 0;
-  }
-
-  li {
-    list-style: none;
-  }
-
-  a {
-    text-decoration: none;
-  }
-
-  /* override white-space for nested lists */
-  ul li,
-  ol li {
-    margin-bottom: 0;
-  }
-
-  li ul,
-  li ol {
-    margin-top: 0;
-  }
 }
