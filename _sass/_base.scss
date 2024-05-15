@@ -177,14 +177,15 @@ hr {
 .banner{
   .ascii {
     font-size: .6em;
+    line-height: normal;
   }
   .desc{
     font-size: .75em;
     margin: 0;
   }
-  text-align: center;
   color: $text-color;
-  line-height: normal;
+  text-align: center;
+  margin-bottom: 1em;
 }
 
 /*
