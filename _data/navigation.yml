@@ -3,4 +3,6 @@ main:
   - title: "Posts"
     url: /
   - title: "CVEs"
-    url: /cves    
+    url: /cves
+  - title: "About me"
+    url: /about

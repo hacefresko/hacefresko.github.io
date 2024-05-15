@@ -70,54 +70,6 @@ social:
   name                   : # If the user or organization name differs from the site's name
   links: # An array of links to social media profiles
 
-
-# Analytics
-analytics:
-  provider               :  "google-universal" # false (default), "google", "google-universal", "custom"
-  google:
-    tracking_id          :
-
-
-# Site Author
-author:
-  name             : "Hacefresko"
-  avatar           : "profile.JPG"
-  bio              : "Computer engineer interested in cybersecurity"
-  location         :
-  employer         :
-  pubmed           : 
-  googlescholar    : 
-  email            :
-  researchgate     : 
-  uri              :
-  bitbucket        :
-  codepen          :
-  dribbble         :
-  flickr           :
-  facebook         :
-  foursquare       :
-  github           : "hacefresko"
-  google_plus      :
-  keybase          :
-  instagram        :
-  impactstory      :
-  lastfm           :
-  linkedin         : "víctor-fresco-perales-3a3a36240"
-  orcid            :
-  pinterest        :
-  soundcloud       :
-  stackoverflow    :
-  steam            :
-  tumblr           :
-  twitter          : "hacefresko"
-  vine             :
-  weibo            :
-  xing             :
-  youtube          :
-  wikipedia        :
-  hackerone        : "hacefresk0"
-  bugcrowd         : "hacefresko"
-
 # Reading Files
 include:
   - .htaccess
