@@ -3,7 +3,7 @@ layout: post
 title: 'Unrestricted Access and Arbitrary File Read in Solr endpoint'
 date: 2024-04-06
 permalink: /posts/unrestricted-access-and-arbitrary-file-read-in-solr-endpoint
-tag: Bug Bounty
+tag: Web
 header:
   teaser: 2024-04-06/passwd.png
 ---
