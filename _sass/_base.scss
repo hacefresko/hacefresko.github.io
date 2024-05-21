@@ -29,10 +29,7 @@ li {
 }
 
 p, li {
-  @media only screen and (max-width: $large) {
-    font-size: $type-size-7;
-  }
-  @media only screen and (min-width: $large) and (max-width: $xx-large){
+  @media only screen and (max-width: $xx-large){
     font-size: $type-size-6;
   }
   @media only screen and (min-width: $xx-large) {
@@ -48,28 +45,28 @@ h1, h2, h3, h4, h5, h6 {
 
 h1 {
   margin-top: 0;
-  @media only screen and (max-width: $large) {
+  @media only screen and (max-width: $xx-large) {
     font-size: $type-size-4;
   }
-  @media only screen and (min-width: $large) {
+  @media only screen and (min-width: $xx-large) {
     font-size: $type-size-3;
   }
 }
 
 h2 {
-  @media only screen and (max-width: $large) {
+  @media only screen and (max-width: $xx-large) {
     font-size: $type-size-5;
   }
-  @media only screen and (min-width: $large) {
+  @media only screen and (min-width: $xx-large) {
     font-size: $type-size-4;
   }
 }
 
 h3 {
-  @media only screen and (max-width: $large) {
+  @media only screen and (max-width: $xx-large) {
     font-size: $type-size-6;
   }
-  @media only screen and (min-width: $large) {
+  @media only screen and (min-width: $xx-large) {
     font-size: $type-size-5;
   }
 }
