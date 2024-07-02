@@ -26,6 +26,7 @@
 
 .menu {
   position: relative;
+  margin-bottom: 1em;
 
   h2 {
     display: table-cell;
@@ -50,17 +51,11 @@
     display: block;
     margin: 0 1rem;
     padding: 0.5rem 0;
-    text-decoration: none;
     color: $text-color;
-
-    &:hover {
-      text-decoration: underline;
-    }
   }
 }
 
 .go_back {
-  font-size: $type-size-5;
   font-family: $monospace;
   margin-top: 5%;
   margin-bottom: 5%;
@@ -136,18 +131,6 @@
       & + p {
         text-indent: $indent-var;
         margin-top: -($indent-var);
-      }
-    }
-  }
-
-  a {
-    text-decoration: underline;
-
-    &:hover {
-      text-decoration: underline;
-
-      img {
-        box-shadow: 0 0 10px rgba(#000, 0.25);
       }
     }
   }
