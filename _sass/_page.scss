@@ -286,7 +286,8 @@
 .page__meta,
 .page__header {
   color: mix(#fff, $gray, 25%);
-  font-family: $global-font-family;
+  font-family: $monospace;
+  text-transform: lowercase;
 
   a {
     color: inherit;
@@ -450,4 +451,57 @@
   margin-bottom: 10px;
   font-size: $type-size-6;
   text-transform: uppercase;
+}
+
+
+/*
+CUSTOM
+==============================================================================*/
+
+.menu {
+  position: relative;
+  margin-bottom: 1em;
+
+  h2 {
+    display: table-cell;
+    vertical-align: middle;
+
+    &:first-child {
+      font-weight: bold;
+
+      a {
+        margin-left: 0;
+      }
+    }
+
+    &:last-child {
+      a {
+        margin-right: 0;
+      }
+    }
+  }
+
+  a {
+    display: block;
+    margin: 0 1rem;
+    padding: 0.5rem 0;
+    color: $text-color;
+  }
+}
+
+.go_back {
+  font-family: $monospace;
+  margin-top: 5%;
+  margin-bottom: 5%;
+  
+  @media only screen and (min-width: $large) {
+    margin-top: 3%;
+    margin-bottom: 3%;
+  }
+}
+
+.cves,
+.social {
+  font-family: $monospace;
+  padding-left: .9em;
 }
