@@ -1,6 +1,6 @@
 ---
 permalink: /
-title: "Posts"
+title: "posts"
 redirect_from: 
   - /posts
   - /posts/

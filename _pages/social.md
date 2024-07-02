@@ -1,10 +1,10 @@
 ---
 permalink: /social
-title: "Social"
+title: "social"
 ---
 
-* [Twitter](https://twitter.com/hacefresko)
-* [Github](https://github.com/hacefresko)
-* [Linkedin](https://www.linkedin.com/in/v%C3%ADctor-fresco-perales-3a3a36240/)
-* [HackerOne](https://hackerone.com/hacefresk0?type=user)
-* [Bugcrowd](https://bugcrowd.com/hacefresko)
+* [twitter](https://twitter.com/hacefresko)
+* [github](https://github.com/hacefresko)
+* [linkedin](https://www.linkedin.com/in/v%C3%ADctor-fresco-perales-3a3a36240/)
+* [hackerOne](https://hackerone.com/hacefresk0?type=user)
+* [bugcrowd](https://bugcrowd.com/hacefresko)

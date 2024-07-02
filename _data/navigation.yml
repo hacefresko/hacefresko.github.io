@@ -1,8 +1,8 @@
 # main links links
 main:
-  - title: "Posts"
+  - title: "posts"
     url: /
   - title: "CVEs"
     url: /cves
-  - title: "Social"
+  - title: "social"
     url: /social
