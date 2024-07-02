@@ -17,9 +17,14 @@
     max-width: 50%;
     margin-right: 25%;
   }
-  @media only screen and (min-width: $x-large) {
+  @media only screen and (min-width: $x-large) and (max-width: $xx-large){
     min-width: 40%;
     max-width: 40%;
+    margin-right: 30%;
+  }
+  @media only screen and (min-width: $xx-large){
+    min-width: 35%;
+    max-width: 35%;
     margin-right: 30%;
   }
 }
