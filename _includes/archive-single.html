@@ -3,7 +3,7 @@
 <div class="{{ include.type | default: "list" }}__item">
   <article class="archive__item" itemscope itemtype="http://schema.org/CreativeWork">
     <h2 class="archive__item-title" itemprop="headline">
-        <a href="{{ base_path }}{{ post.url }}" rel="permalink">{{ post.title }}</a>
+        <a href="{{ base_path }}{{ post.url }}" rel="permalink">&gt; {{ post.title }}</a>
     </h2>
     <p class="page__header"><time class="page__date" datetime="{{ post.date | default: "1900-01-01" | date_to_xmlschema }}">{{ post.date | default: "1900-01-01" | date: "%B %d, %Y" }}</time> - <span class="page__tags">{{ post.tag }}</span></p>
   </article>
