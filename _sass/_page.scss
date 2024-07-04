@@ -3,11 +3,11 @@
    ========================================================================== */
 
 #main {
-  @include container;
-  @include clearfix;
-  padding-left: 1em;
-  padding-right: 1em;
-
+   @include container;
+   @include clearfix;
+   padding-left: 1em;
+   padding-right: 1em;
+   
   @media only screen and (min-width: $large) and (max-width: $x-large){
     min-width: 60%;
     max-width: 60%;
@@ -20,6 +20,10 @@
     min-width: 35%;
     max-width: 35%;
   }
+}
+
+#index {
+  width: fit-content;
 }
 
 .page {
