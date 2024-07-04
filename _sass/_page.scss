@@ -9,27 +9,6 @@
    padding-right: 1em;
 }
 
-.index {
-  @media only screen and (min-width: $large) and (max-width: $xx-large){
-    width: 37em;
-  }
-  @media only screen and (min-width: $xx-large){
-    width: 45em;
-  }
-}
-
-.post {
-   @media only screen and (min-width: $large) and (max-width: $x-large){
-    width: 60%;
-  }
-  @media only screen and (min-width: $x-large) and (max-width: $xx-large){
-    width: 40%;
-  }
-  @media only screen and (min-width: $xx-large){
-    width: 35%;
-  }
-}
-
 .page {
   .page__inner-wrap {
     @include full();
@@ -263,6 +242,27 @@
 CUSTOM
 ==============================================================================*/
 
+.index {
+  @media only screen and (min-width: $large) and (max-width: $xx-large){
+    width: 37em;
+  }
+  @media only screen and (min-width: $xx-large){
+    width: 45em;
+  }
+}
+
+.post {
+   @media only screen and (min-width: $large) and (max-width: $x-large){
+    width: 60%;
+  }
+  @media only screen and (min-width: $x-large) and (max-width: $xx-large){
+    width: 40%;
+  }
+  @media only screen and (min-width: $xx-large){
+    width: 35%;
+  }
+}
+
 .menu {
   position: relative;
   margin-bottom: 1em;
@@ -308,5 +308,5 @@ CUSTOM
 .cves,
 .social {
   font-family: $monospace;
-  padding-left: .9em;
+  padding: 0px;
 }
