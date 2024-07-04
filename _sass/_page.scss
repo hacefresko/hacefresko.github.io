@@ -7,7 +7,10 @@
    @include clearfix;
    padding-left: 1em;
    padding-right: 1em;
-   
+}
+
+.index {
+  width: fit-content;
   @media only screen and (min-width: $large) and (max-width: $x-large){
     max-width: 60%;
   }
@@ -19,19 +22,15 @@
   }
 }
 
-.index {
-  width: fit-content;
-}
-
 .post {
    @media only screen and (min-width: $large) and (max-width: $x-large){
-    min-width: 60%;
+    width: 60%;
   }
   @media only screen and (min-width: $x-large) and (max-width: $xx-large){
-    min-width: 40%;
+    width: 40%;
   }
   @media only screen and (min-width: $xx-large){
-    min-width: 35%;
+    width: 35%;
   }
 }
 
