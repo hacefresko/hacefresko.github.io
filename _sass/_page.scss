@@ -10,15 +10,11 @@
 }
 
 .index {
-  width: fit-content;
-  @media only screen and (min-width: $large) and (max-width: $x-large){
-    max-width: 60%;
-  }
-  @media only screen and (min-width: $x-large) and (max-width: $xx-large){
-    max-width: 40%;
+  @media only screen and (max-width: $xx-large){
+    width: 35em;
   }
   @media only screen and (min-width: $xx-large){
-    max-width: 35%;
+    width: 45em;
   }
 }
 
