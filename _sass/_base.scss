@@ -24,8 +24,20 @@ p {
   text-align: justify;
 }
 
+ul {
+    list-style: none;
+    padding: 0px;
+}
+
 li {
-  margin-bottom: .5em;
+    margin-bottom: .5em;
+}
+
+ul li:before
+{
+    content: '>';
+    margin: 0 .5em;
+    color: $primary-color;
 }
 
 p, li {
