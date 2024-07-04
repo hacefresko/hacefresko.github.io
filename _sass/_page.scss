@@ -2,28 +2,37 @@
    SINGLE PAGE/POST
    ========================================================================== */
 
-#main {
+.main {
    @include container;
    @include clearfix;
    padding-left: 1em;
    padding-right: 1em;
    
   @media only screen and (min-width: $large) and (max-width: $x-large){
-    min-width: 60%;
     max-width: 60%;
   }
   @media only screen and (min-width: $x-large) and (max-width: $xx-large){
-    min-width: 40%;
     max-width: 40%;
   }
   @media only screen and (min-width: $xx-large){
-    min-width: 35%;
     max-width: 35%;
   }
 }
 
-#index {
+.index {
   width: fit-content;
+}
+
+.post {
+   @media only screen and (min-width: $large) and (max-width: $x-large){
+    min-width: 60%;
+  }
+  @media only screen and (min-width: $x-large) and (max-width: $xx-large){
+    min-width: 40%;
+  }
+  @media only screen and (min-width: $xx-large){
+    min-width: 35%;
+  }
 }
 
 .page {
