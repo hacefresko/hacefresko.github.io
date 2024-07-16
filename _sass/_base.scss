@@ -4,13 +4,13 @@
 html {
   /* sticky footer fix */
   position: relative;
-  min-height: 100%;
+  height: 100%;
 }
 
 body {
   margin: 0;
   padding: 0;
-  padding-bottom: 9em;
+  height: 100%;
   color: $text-color;
   font-family: $global-font-family;
 

@@ -3,10 +3,11 @@
    ========================================================================== */
 
 .main {
-   @include container;
-   @include clearfix;
-   padding-left: 1em;
-   padding-right: 1em;
+  @include container;
+  @include clearfix;
+  padding-left: 1em;
+  padding-right: 1em;
+  height: 100%;
 }
 
 .page {
