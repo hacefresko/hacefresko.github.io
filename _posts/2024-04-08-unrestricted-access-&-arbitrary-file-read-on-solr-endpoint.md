@@ -72,6 +72,6 @@ So, I wrote a simple script to easily traverse the file system of the server and
 
 ## Conclusion
 
-I ended up reporting both vulnerabilities separately via HackerOne and got a total bounty of $1860, which is not that much yaking into account to the impact of both vulnerabilities. Anyways, thanks for reading the post and I hope you liked it :)
+I ended up reporting both vulnerabilities separately via HackerOne and got a total bounty of $1860, which is not that much taking into account the impact of both vulnerabilities. Anyways, thanks for reading the post and I hope you liked it :)
 
 {% endraw %}
