@@ -1,6 +1,6 @@
 ---
 layout: post
-title: 'Accessing +700,000 users data and more from a Solr endpoint'
+title: 'Accessing +700,000 users data and files from a Solr endpoint'
 date: 2024-04-06
 permalink: /posts/unrestricted-access-and-arbitrary-file-read-in-solr-endpoint
 tag: web, bug bounties
