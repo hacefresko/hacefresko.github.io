@@ -8,5 +8,5 @@ redirect_from:
 
 {% include base_path %}
 {% for post in site.posts %}
-  {% include archive-single.html %}
+  {% include post_link.html %}
 {% endfor %}
