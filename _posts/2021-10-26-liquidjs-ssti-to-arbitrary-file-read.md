@@ -1,5 +1,6 @@
 ---
-title: 'LiquidJS SSTI to arbitrary file read'
+layout: post
+title: 'Exploiting an SSTI in LiquidJS to read any file in the server'
 date: 2021-10-26
 permalink: /posts/liquidjs-ssti-to-arbitrary-file-read
 tag: web, bug bounties
