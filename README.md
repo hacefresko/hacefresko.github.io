@@ -1,1 +1,1 @@
-This is my personal blog, where I write about cybersecurity
+Personal blog about hacking.
