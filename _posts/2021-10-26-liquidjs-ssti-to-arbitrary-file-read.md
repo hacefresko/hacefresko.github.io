@@ -5,7 +5,7 @@ date: 2021-10-26
 permalink: /posts/liquidjs-ssti-to-arbitrary-file-read
 tag: web, bug bounties
 header:
-  teaser: 2021-10-26/poc_screenshot.jpeg
+  teaser: cheatsheets/2021-10-26/poc_screenshot.jpeg
 ---
 
 {% raw %}
@@ -21,7 +21,7 @@ And because of this initial excitement, I was not thinking clearly so I made the
 
 I adapted the payload in the article to my case and submitted `{{account.constructor(function(){return 123})()}}` but no email was sent. Also tried `{{account.constructor.constructor('return 123')()}}` but again, no email. Then, I started testing a bit more, and found that `{{7*7}}` didn't work either. However, by submitting `{{account.constructor}}` and `{{account.constructor.constructor}}` I was receiving `function Object() { [native code] }` and `function Function() { [native code] }` respectively. It didn't make much sense for me. I could reach objects and functions but I couldn't really execute them? I couldn't perform arithmetic operations either? I left it there and took a small break.
 
-<img src="/images/2021-10-26/tries_screenshot.png" style="width: 700px;display: block;margin-left: auto;margin-right: auto;">
+<img src="/images/posts/2021-10-26/tries_screenshot.png" style="width: 700px;display: block;margin-left: auto;margin-right: auto;">
 
 After one or two days I suddenly thought that I didn't actually check if the template engine was Nunjucks or if it was any other NodeJS template engine. I searched for the most common NodeJS template engines that used `{{ }}` as tags and started testing. However, I was still very nervous and excited and still not thinking clearly. I didn't research too much and none of the engines I found were working either. I tried Mustache, Handlebars, Atpl... I was getting very frustrated and knew that I had to take a bigger break since I was not used to bug hunting. I learnt that this can be way much more frustrating than any CTF or wargame I had played out there.
 
@@ -29,7 +29,7 @@ Summer ended and University started, so I knew I would have less free time in a 
 
 This time, I did my research properly by testing each possible option. I finally discarded Nunjuck by testing all syntax it offered and did the same with other common template engines for NodeJS. At the end, it turned out to be [LiquidJS](https://liquidjs.com/), a template engine similar to [Liquid](https://github.com/Shopify/liquid) used by Shopify or GitHub pages. LiquidJS does not allow real code execution such as other engines. In addition, I couldn't find any example on the Internet about exploiting SSTI on LiquidJS, so I had to find my own way. Looking at the documentation, I found the deprecated `include` tag, which allows to render predefined templates. However, an attacker can also include another file, even if it's not a real template, giving access to the whole file system of the server (in fact, when writing this article I found [this issue](https://github.com/harttle/liquidjs/issues/131) explaining this problematic). In the end, I just had to submit `{% include '/etc/passwd' %}` in order to receive in my email all the contents of the `/etc/passwd` file.
 
-<img src="/images/2021-10-26/poc_screenshot.jpeg" style="width: 700px;display: block;margin-left: auto;margin-right: auto;">
+<img src="/images/posts/2021-10-26/poc_screenshot.jpeg" style="width: 700px;display: block;margin-left: auto;margin-right: auto;">
 
 I wasn't able to get RCE, however, I got Arbitrary File Read and a bounty of $1500, which is pretty good for the first time. Thanks for reading it and I hope you liked it :)
 {% endraw %}

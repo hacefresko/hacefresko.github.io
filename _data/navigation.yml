@@ -4,5 +4,7 @@ main:
     url: /
   - title: "CVEs"
     url: /cves
+  - title: "cheatsheets"
+    url: /cheatsheets
   - title: "links"
     url: /links
