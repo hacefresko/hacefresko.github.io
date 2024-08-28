@@ -6,7 +6,6 @@ redirect_from:
   - /posts/
 ---
 
-{% include base_path %}
 {% for post in site.posts %}
   {% include post_link.html %}
 {% endfor %}
