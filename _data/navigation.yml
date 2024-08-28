@@ -4,5 +4,5 @@ main:
     url: /
   - title: "CVEs"
     url: /cves
-  - title: "social"
-    url: /social
+  - title: "links"
+    url: /links
