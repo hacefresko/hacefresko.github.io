@@ -6,6 +6,9 @@ redirect_from:
 ---
 
 <ul class="cves">
-    <li><a href="https://www.incibe.es/en/incibe-cert/notices/aviso/cross-site-scripting-vulnerability-tp-link-archer-ax50">[CVE-2024-2188] - TP-Link archer ax50 stored XSS via UPnP</a></li>
-    <li><a href="https://www.incibe.es/en/incibe-cert/notices/aviso/tp-link-tapo-c200-remote-code-execution-vulnerability">[CVE-2021-4045] - TP-Link tapo c200 unauthentiacted RCE</a></li>
+{% for cve in site.data.cves %}
+  <li>
+    <a href="{{ cve.link }}">[{{ cve.cve }}] - {{ cve.title }}</a>
+  </li>
+{% endfor %}
 </ul>
