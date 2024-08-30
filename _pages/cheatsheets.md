@@ -3,6 +3,12 @@ permalink: /cheatsheets
 title: "cheatsheets"
 ---
 
-{% for post in site.cheatsheets %}
-  test
+{% assign cheatsheets = site.static_files | where: "cheatsheet", true %}
+
+<ul class="cheatsheets">
+{% for cheatsheet in cheatsheets %}
+  <li>
+    <a href="{{ cheatsheet.path }}">{{ cheatsheet.name }}</a>
+  </li>
 {% endfor %}
+</ul>
