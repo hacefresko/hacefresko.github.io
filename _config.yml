@@ -85,7 +85,7 @@ defaults:
       layout: page
   # cheatsheets
   - scope:
-      path: "assets/cheatsheets"
+      path: "cheatsheets"
     values:
       cheatsheet: true
 
