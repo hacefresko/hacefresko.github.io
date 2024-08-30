@@ -83,11 +83,6 @@ defaults:
       type: pages
     values:
       layout: page
-  # cheatsheets
-  - scope:
-      path: "cheatsheets"
-    values:
-      cheatsheet: true
 
 
 # Outputting
