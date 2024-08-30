@@ -33,7 +33,7 @@
 /user/<username>/manage
 ```
 
-#### User web pages ^6dec27
+#### User web pages
 
 ```
 /web/guest
@@ -49,7 +49,7 @@
 /group/<username>
 ```
 
-#### Control panel ^700327
+#### Control panel
 
 ```
 /group/control_panel/manage
@@ -65,14 +65,12 @@ If they only show a message but not any configuration menu, it may be possible t
 /group/control_panel/manage?p_p_state=maximized&p_p_mode=view&p_p_id=com_liferay_login_web_portlet_LoginPortlet
 ```
 
-![[liferay_control_panel_1.PNG]]
-![[liferay_control_panel_2.PNG]]
-
 #### License panel
 
 ```
 /c/portal/license
 ```
+
 # Access to other users data
 
 Authenticated users may be able to access other users data from the control panel by providing another username:
@@ -117,6 +115,7 @@ An attacker can enumerate all available portlets by iterating over each portlet 
 ### Numeric IDs
 
 Numeric IDs are not well documented, but due to their nature, they are easy to bruteforce.
+
 ### String IDs
 
 Liferay maintains a [list](https://help.liferay.com/hc/en-us/articles/360018511712-Fully-Qualified-Portlet-IDs) of all default portlets and their string IDs:
@@ -234,8 +233,8 @@ Liferay maintains a [list](https://help.liferay.com/hc/en-us/articles/3600185117
 test@liferay.com:test
 ```
 
-
 # Known vulnerabilities
+
 ## Open redirect
 
 If misconfigured, there is an Open Redirect vulnerability at the following URLs:
@@ -249,10 +248,7 @@ If misconfigured, there is an Open Redirect vulnerability at the following URLs:
 
 ## Stored XSS on user pages
 
-If [[#^6dec27|user web pages]] are enabled, it may be possible for users to edit them in the [[Liferay#^700327|control panel]]. There are many ways to add JavaScript to these pages, but the easiest one by far is to go to the configuration panel of `My Profile` and look for the option to add JavaScript code, which will be appended to every page that the user publishes. Since these pages are public, an attacker can use this to exploit an stored XSS vulnerability very easily.
-
-![[liferay_XSS1.png]]
-![[liferay_XSS2.png]]
+If user web pages are enabled, it may be possible for users to edit them in the control panel. There are many ways to add JavaScript to these pages, but the easiest one by far is to go to the configuration panel of `My Profile` and look for the option to add JavaScript code, which will be appended to every page that the user publishes. Since these pages are public, an attacker can use this to exploit an stored XSS vulnerability very easily.
 
 ## Reflected XSS
 
@@ -267,7 +263,7 @@ Older versions of Liferay are vulnerable to a reflected XSS in the same resource
 
 ### Groovy console
 
-Inside the [[Liferay#^700327|control panel]] for the administrators, there is an option to enable a Groovy console, which can be accessed with the following URL:
+Inside the control panel for the administrators, there is an option to enable a Groovy console, which can be accessed with the following URL:
 
 ```
 /group/control_panel/manage?p_p_id=com_liferay_server_admin_web_portlet_ServerAdminPortlet&p_p_lifecycle=0&p_p_state=maximized&p_p_mode=view&_com_liferay_server_admin_web_portlet_ServerAdminPortlet_mvcRenderCommandName=%2Fserver_admin%2Fview&_com_liferay_server_admin_web_portlet_ServerAdminPortlet_tabs1=script
@@ -285,7 +281,7 @@ println "$sout"
 
 ### Gogo shell
 
-Inside the [[Liferay#^700327|control panel]] for the administrators, there is an option to enable a Gogo shell, which can be accessed with the following URL:
+Inside the control panel for the administrators, there is an option to enable a Gogo shell, which can be accessed with the following URL:
 
 ```
 /group/control_panel/manage?p_p_id=com_liferay_gogo_shell_web_internal_portlet_GogoShellPortlet&p_p_lifecycle=0&p_p_state=maximized&p_p_mode=view&_com_liferay_gogo_shell_web_internal_portlet_GogoShellPortlet_javax.portlet.action=executeCommand
