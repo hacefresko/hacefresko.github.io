@@ -1,6 +1,8 @@
 ---
 permalink: /cheatsheets
 title: "cheatsheets"
+redirect_from:
+  - /cheatsheets/
 ---
 
 {% assign cheatsheets = site.static_files | where: "cheatsheet", true %}
