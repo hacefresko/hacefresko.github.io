@@ -25,7 +25,7 @@ After learning about Solr and reading some articles about common vulnerabilities
 
 ## Getting unrestricted access
 
-Although the Solr endpoint could be used by regular users, the information available was restricted to that accessible by each user. As an example, querying *all user data* with `/api/solr/User/select?q=*`, would only gives us **our** user data. This restriction was implemented by also executing a default query containing default conditions such as `only retrieve data belonging to this user`. This behavior could be seen in the raw response from the Solr endpoint, in which the attribute `params` contained a list of the executed queries, named `q`, with two elements: the default query set by the server (` ( tenantId:1 AND ...`) and the query requested by the user, (`*`):
+Although the Solr endpoint could be used by regular users, the information available was restricted to that accessible by each user. As an example, querying *all user data* with `/api/solr/User/select?q=*`, would only give us **our** user data. This restriction was implemented by also executing a default query containing default conditions such as `only retrieve data belonging to this user`. This behavior could be seen in the raw response from the Solr endpoint, in which the attribute `params` contained a list of the executed queries, named `q`, with two elements: the default query set by the server (` ( tenantId:1 AND ...`) and the query requested by the user, (`*`):
 
 <img src="/images/posts/2024-04-06/query-filter.png" style="width: 700px;display: block;margin-left: auto;margin-right: auto;"/>
 
