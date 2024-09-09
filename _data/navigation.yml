@@ -2,9 +2,9 @@
 main:
   - title: "posts"
     url: /
+  - title: "about"
+    url: /about
   - title: "CVEs"
     url: /cves
-#  - title: "cheatsheets"
-#    url: /cheatsheets
   - title: "links"
     url: /links
