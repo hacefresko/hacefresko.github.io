@@ -5,7 +5,7 @@ date: 2021-10-26
 permalink: /posts/liquidjs-ssti-to-arbitrary-file-read
 tag: web, bug bounties
 header:
-  teaser: cheatsheets/2021-10-26/poc_screenshot.jpeg
+  teaser: posts/2021-10-26/poc_screenshot.jpeg
 ---
 
 {% raw %}
