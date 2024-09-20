@@ -54,7 +54,7 @@
 
 .list__item {
 
-  margin-bottom: 1.6em;
+  margin-top: 1.6em;
 
   @include breakpoint($medium) {
     padding-right: $right-sidebar-width-narrow;
