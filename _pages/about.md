@@ -6,6 +6,6 @@ redirect_from:
   - /posts/
 ---
 
-I am hacefresko, a guy from Spain who likes hacking and tech in general.
+I am hacefresko, a Spanish guy who likes hacking and tech in general.
 In this blog, I'll be posting about cool vulnerabilities I've found that I think could bring something valuable to the hacking community.
 Enjoy and feel free to contact me on any of the provided [links](/links) :)
