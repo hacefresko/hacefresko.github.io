@@ -1,8 +1,8 @@
 <div class="{{ include.type | default: "list" }}__item">
   <article class="post_link" itemscope itemtype="http://schema.org/CreativeWork">
-    <h3 class="post_link-title" itemprop="headline">
+    <h2 class="post_link-title" itemprop="headline">
         <a href="{{ site.url }}{{ post.url }}" rel="permalink">&gt; {{ post.title }}</a>
-    </h3>
+    </h2>
     <p class="page__header"><time class="page__date" datetime="{{ post.date | default: "1900-01-01" | date_to_xmlschema }}">{{ post.date | default: "1900-01-01" | date: "%B %d, %Y" }}</time> - <span class="page__tags">{{ post.tag }}</span></p>
   </article>
 </div>
