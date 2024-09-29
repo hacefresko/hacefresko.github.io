@@ -244,11 +244,14 @@ CUSTOM
 ==============================================================================*/
 
 .main {
-  @media only screen and (min-width: $medium) and (max-width: $xx-large){
-    width: 45em;
+   @media only screen and (min-width: $medium) and (max-width: $x-large){
+    width: 50%;
+  }
+  @media only screen and (min-width: $x-large) and (max-width: $xx-large){
+    width: 40%;
   }
   @media only screen and (min-width: $xx-large){
-    width: 55em;
+    width: 35%;
   }
 }
 
