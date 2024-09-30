@@ -216,14 +216,15 @@ hr {
   .ascii {
     font-size: .5em;
     font-weight: bolder;
+    line-height: normal;
   }
   .desc{
     margin: 0;
     font-size: .75em;
+    line-height: normal;
   }
   color: $text-color;
   margin: 0 0 .5em;
-  line-height: normal;
 }
 
 /*
