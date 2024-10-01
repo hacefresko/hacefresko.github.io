@@ -10,8 +10,8 @@
 $background-color: #000000 !default;
 $text-color: #ffffff !default;
 $primary-color: #00ff50 !default;
-$border-color: rgb(54, 54, 54) !default;
-$code-background-color: #373737 !default;
+$border-color: #808080 !default;
+$code-background-color: #272727 !default;
 $code-background-color-dark: #222222 !default;
 $form-background-color: rgb(54, 54, 54) !default;
 $footer-background-color: mix($primary-color, #000, 10%) !default;
@@ -73,7 +73,8 @@ $indent-var                 : 1.3em;
 /* system typefaces */
 $serif                      : Georgia, Times, serif;
 $sans-serif                 : -apple-system, ".SFNSText-Regular", "San Francisco", "Roboto", "Segoe UI", "Helvetica Neue", "Lucida Grande", Arial, sans-serif;
-$monospace                  : Monaco, Consolas, "Lucida Console", monospace;
+$monospace                  : "Noto Sans Mono", monospace, Consolas, "Lucida Console", monospace;
+$courier                    : Courier, monospace;
 
 /* sans serif typefaces */
 $sans-serif-narrow          : $sans-serif;
@@ -88,6 +89,7 @@ $garamond                   : Garamond, serif;
 
 $global-font-family         : $monospace;
 $header-font-family         : $monospace;
+$code-font-family           : $monospace;
 $caption-font-family        : $sans-serif;
 
 /* type scale */
