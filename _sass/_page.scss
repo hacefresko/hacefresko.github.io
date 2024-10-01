@@ -243,15 +243,27 @@
 CUSTOM
 ==============================================================================*/
 
-.main {
+.index {
+  @media only screen and (min-width: $medium) and (max-width: $x-large){
+   width: 45%;
+ }
+ @media only screen and (min-width: $x-large) and (max-width: $xx-large){
+   width: 40%;
+ }
+ @media only screen and (min-width: $xx-large){
+   width: 35%;
+ }
+}
+
+.post {
    @media only screen and (min-width: $medium) and (max-width: $x-large){
-    width: 45%;
+    width: 50%;
   }
   @media only screen and (min-width: $x-large) and (max-width: $xx-large){
-    width: 40%;
+    width: 45%;
   }
   @media only screen and (min-width: $xx-large){
-    width: 35%;
+    width: 40%;
   }
 }
 

@@ -212,14 +212,12 @@ hr {
 
 .banner{
   .ascii {
-    font-size: .5em;
+    font-size: .45em;
     font-weight: bolder;
-    line-height: normal;
   }
   .desc{
     margin: 0;
-    line-height: normal;
-    font-size: $type-size-6;
+    font-size: $type-size-7;
   }
   color: $text-color;
   margin: 0 0 .5em;
