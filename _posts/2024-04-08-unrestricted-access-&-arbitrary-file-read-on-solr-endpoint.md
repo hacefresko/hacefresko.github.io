@@ -47,7 +47,7 @@ As you can see, the raw response from the Solr endpoint shows only one parameter
 4. When it has finished processing the parameters supplied by the user, the server appends the default query to restrict access to other user's data to the URL without the user supplied parameters: `/api/solr/User/select?hacked?q=<default_query>`
 4. The server processes the remaining parameters, in this case, `hacked?q`, which does nothing.
 
-This way, the default query that restricted access to other user's data gets bypassed, allowing the retrieval of all the information available in the Solr endpoint. In the case of the `User` core, which contained all kinds of personal information, there were 796,165 entries. Also, there were other cores mentioned before with critical data such as `UserLoginHistory`, `BusinessEntityAccount`, `EntityPayment`, `PasswordHistory`, etc. Here are some examples of the retrieved data:
+This way, the default query that restricted access to other user's data gets bypassed, allowing the retrieval of all the information available in the Solr endpoint. In the case of the `User` core, which contained all kinds of personal information, there were 796,165 entries, as can be seen in the previous image. Also, there were other cores mentioned before with critical data such as `UserLoginHistory`, `BusinessEntityAccount`, `EntityPayment`, `PasswordHistory`, etc. Here are some examples of the retrieved data:
 
 <img src="/images/posts/2024-04-06/login-history.png" style="width: 600px;display: block;margin-left: auto;margin-right: auto;"/>
 <img src="/images/posts/2024-04-06/payments.png" style="width: 600px;display: block;margin-left: auto;margin-right: auto;"/>
