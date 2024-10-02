@@ -245,22 +245,22 @@ CUSTOM
 
 .index {
   @media only screen and (min-width: $medium) and (max-width: $x-large){
-   width: 45%;
+   width: 47%;
  }
  @media only screen and (min-width: $x-large) and (max-width: $xx-large){
    width: 40%;
  }
  @media only screen and (min-width: $xx-large){
-   width: 35%;
+   width: 33%;
  }
 }
 
 .post {
    @media only screen and (min-width: $medium) and (max-width: $x-large){
-    width: 50%;
+    width: 54%;
   }
   @media only screen and (min-width: $x-large) and (max-width: $xx-large){
-    width: 45%;
+    width: 47%;
   }
   @media only screen and (min-width: $xx-large){
     width: 40%;

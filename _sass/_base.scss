@@ -212,12 +212,23 @@ hr {
 
 .banner{
   .ascii {
-    font-size: .45em;
     font-weight: bolder;
+    @media only screen and (max-width: $xx-large) {
+      font-size: .45em;
+    }
+    @media only screen and (min-width: $xx-large) {
+      font-size: .6em;
+    }
   }
   .desc{
     margin: 0;
-    font-size: $type-size-7;
+    overflow: unset;
+    @media only screen and (max-width: $xx-large) {
+      font-size: $type-size-7;
+    }
+    @media only screen and (min-width: $xx-large) {
+      font-size: $type-size-6;
+    }
   }
   color: $text-color;
   margin: 0 0 .5em;
