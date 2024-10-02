@@ -41,7 +41,6 @@
     height: auto;
     text-align: center;
     margin-bottom: 20%;
-    font-size: $type-size-5;
 
     @include breakpoint($large) {
       margin-top: 50%;
@@ -67,8 +66,6 @@
 
   /* paragraph indents */
   p {
-    margin: 0 0 $indent-var;
-
     /* sibling indentation*/
     @if $paragraph-indent == true {
       & + p {
@@ -87,10 +84,6 @@
   dd {
     margin-left: 1em;
     font-family: $global-font-family;
-    font-size: $type-size-6;
-  }
-
-  .small {
     font-size: $type-size-6;
   }
 

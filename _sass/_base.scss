@@ -20,7 +20,7 @@ body {
   }
 }
 
-p, ul, li {
+p, li {
   text-align: justify;
   line-height: 1.5;
 
@@ -102,10 +102,6 @@ a {
       box-shadow: 0 0 10px rgba(#000, 0.25);
     }
   }
-}
-
-small, .small {
-  font-size: $type-size-6;
 }
 
 u,
@@ -203,7 +199,7 @@ hr {
   display: block;
   margin: .25em 0 1.6em;
   border: 0;
-  border-top: 1px solid $border-color;
+  border-top: 1px solid $border-color-dark;
 }
 
 /*
@@ -222,7 +218,7 @@ hr {
   }
   .desc{
     margin: 0;
-    overflow: unset;
+    overflow: unsetww;
     @media only screen and (max-width: $xx-large) {
       font-size: $type-size-7;
     }
