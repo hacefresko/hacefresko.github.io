@@ -1,15 +1,27 @@
 <head>
-    <!--Custom CSS-->
+    <!--title-->
+    <title>{{ site.title }}</title>
+
+    <!--custom CSS-->
     <link rel="stylesheet" href="/assets/css/main.css">
 
-    <!--Google fonts-->
+    <!--google fonts-->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Courier+Prime:ital,wght@0,400;0,700;1,400;1,700&display=swap" rel="stylesheet">
 
-    <!--Google verification-->
+    <!--google verification-->
     <meta name="google-site-verification" content="{{ site.google_site_verification }}" />
 
-    <!--Favicon redirection-->
+    <!--favicon redirection-->
     <link rel="shortcut icon" href="/assets/images/favicon.ico">
+
+    <!--teasers for twitter-->
+    <meta name="twitter:title" content="{{ page.title | default: site.title | markdownify | strip_html | strip_newlines | escape_once }}">
+    <meta name="twitter:url" content="{{ canonical_url }}">
+    <meta name="twitter:card" content="summary_large_image">
+    {% if page.header.teaser %}
+    <meta name="twitter:image" content="{{ page.header.teaser | prepend: "/assets/images/" | prepend: site.url }}">
+    <meta property="og:image" content="{{ page.header.teaser | prepend: "/assets/images/" | prepend: site.url }}">
+    {% endif %}
 </head>

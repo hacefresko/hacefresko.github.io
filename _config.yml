@@ -1,7 +1,5 @@
 # Site Settings
-locale                   : "en-US"
 title                    : "hacefresko"
-title_separator          : "~"
 url                      : https://www.hacefresko.com
 repository               : "hacefresko/hacefresko.github.io"
 
