@@ -1,5 +1,0 @@
-- name: liferay
-  file: /assets/cheatsheets/liferay.txt
-
-- name: solr
-  file: /assets/cheatsheets/solr.txt

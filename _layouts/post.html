@@ -1,29 +1,6 @@
 ---
-layout: base
+layout: default
 ---
 
-<div class="main post">
-    
-    <article class="page" itemscope itemtype="http://schema.org/CreativeWork">
-    {% if page.title %}<meta itemprop="headline" content="{{ page.title | markdownify | strip_html | strip_newlines | escape_once }}">{% endif %}
-    {% if page.excerpt %}<meta itemprop="description" content="{{ page.excerpt | markdownify | strip_html | strip_newlines | escape_once }}">{% endif %}
-    {% if page.date %}<meta itemprop="datePublished" content="{{ page.date | date: "%B %d, %Y" }}">{% endif %}
-    {% if page.modified %}<meta itemprop="dateModified" content="{{ page.modified | date: "%B %d, %Y" }}">{% endif %}
-
-    <div class="go_back">
-        <a href="/">&lt; go back</a>
-    </div>
-
-    <div class="page__inner-wrap">
-        <header>
-            <h1 class="page__title" itemprop="headline">{{ page.title }}</h1>
-            <p class="page__header"><time class="page__date" datetime="{{ page.date | default: "1900-01-01" | date_to_xmlschema }}">{{ page.date | default: "1900-01-01" | date: "%B %d, %Y" }}</time> - <span class="page__tags">{{ page.tag }}</span></p>
-        </header>
-
-        <section class="page__content" itemprop="text">
-        {{ content }}
-        {% if page.link %}<div><a href="{{ page.link }}" class="btn">{{ site.data.ui-text[site.locale].ext_link_label | default: "Direct Link" }}</a></div>{% endif %}
-        </section>
-    </div>
-    </article>
-</div>
+<a href="/">< go back</a>
+{{ content }}

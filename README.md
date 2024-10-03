@@ -1,1 +1,0 @@
-Personal blog about hacking.
