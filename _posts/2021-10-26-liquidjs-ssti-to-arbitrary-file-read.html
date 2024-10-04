@@ -115,7 +115,7 @@ header:
 | NodeJS. At the end, it turned out to be <a href="https://liquidjs.com/">LiquidJS</a>, a template engine similar to <a href="https://github.com/Shopify/liquid">Liquid</a> used by    |
 | Shopify or GitHub pages. LiquidJS does not allow real code execution such as other engines. In   |
 | addition, I couldn't find any example on the Internet about exploiting SSTI on LiquidJS, so I    |
-| had to find my own way. Looking at the documentation, I found the deprecated `include` tag,      |
+| had to find my own way. Looking at the documentation, I found the deprecated "include" tag,      |
 | which allows to render predefined templates. However, an attacker can also include another file, |
 | even if it's not a real template, giving access to the whole file system of the server (in fact, |
 | when writing this article I found <a href="https://github.com/harttle/liquidjs/issues/131">this issue</a> explaining this problematic). In the end, I just    |
