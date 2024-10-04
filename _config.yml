@@ -5,3 +5,7 @@ repository               : "hacefresko/hacefresko.github.io"
 
 # SEO
 google_site_verification: "zDnKQCYsgAZXSg-xueOayFFrYOicAVaWxGfP1E93LJk"
+
+plugins:
+  # RSS Feed
+  - jekyll-feed
