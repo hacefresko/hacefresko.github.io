@@ -1,6 +1,7 @@
 html {
     background-color: #000000;
     color: #ffffff;
+    font-size: 14px;
 }
 
 pre {
@@ -23,6 +24,9 @@ a {
 
 img {
     position: absolute;
+    left: 0;
+  right: 0;
+  margin: 0 auto;
 }
 
 .main {
