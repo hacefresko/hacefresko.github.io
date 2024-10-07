@@ -4,10 +4,6 @@ html {
     font-size: 14px;
 }
 
-pre {
-    font-family: "Courier Prime", monospace;
-}
-
 ::selection {
     color: #000000;
     background: #00ff50;
