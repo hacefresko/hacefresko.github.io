@@ -5,7 +5,7 @@ html {
 }
 
 pre {
-    font-family: monospace;
+    font-family: "Courier New", monospace;
 }
 
 ::selection {
