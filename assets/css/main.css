@@ -1,11 +1,11 @@
 html {
     background-color: #000000;
     color: #ffffff;
-    font-size: 14px;
+    font-size: 1em;
 }
 
 pre {
-    font-family: "Courier New", monospace;
+    font-family: monospace;
 }
 
 ::selection {
@@ -27,10 +27,10 @@ img {
     left: 0;
     right: 0;
     margin: 0 auto;
-    max-width: 100%;
 }
 
 .main {
     margin: auto;
     width: fit-content;
+    position: relative;
 }
