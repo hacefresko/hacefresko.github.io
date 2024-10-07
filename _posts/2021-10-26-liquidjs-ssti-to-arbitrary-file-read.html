@@ -53,30 +53,30 @@ header:
 |                                                                                                      |
 | I adapted the payload in the article to my case and submitted the following:                         |
 |                                                                                                      |
-| +---------------------------------------------------+                                                |
-| | {{account.constructor(function(){return 123})()}} |                                                |
-| +---------------------------------------------------+                                                |
+|    +---------------------------------------------------+                                             |
+|    | {{account.constructor(function(){return 123})()}} |                                             |
+|    +---------------------------------------------------+                                             |
 |                                                                                                      |
 | But no email was sent. Also tried:                                                                   |
 |                                                                                                      |
-| +-----------------------------------------------------+                                              |
-| | {{account.constructor.constructor('return 123')()}} |                                              |
-| +-----------------------------------------------------+                                              |
+|    +-----------------------------------------------------+                                           |
+|    | {{account.constructor.constructor('return 123')()}} |                                           |
+|    +-----------------------------------------------------+                                           |
 |                                                                                                      |
 | But again, no email. Then, I started testing a bit more, and found that "{{7*7}}" didn't work        |
 | either. However, by submitting the following two payloads:                                           |
 |                                                                                                      |
-| +-------------------------------------+                                                              |
-| | {{account.constructor}}             |                                                              |
-| | {{account.constructor.constructor}} |                                                              |
-| +-------------------------------------+                                                              |
+|    +-------------------------------------+                                                           |
+|    | {{account.constructor}}             |                                                           |
+|    | {{account.constructor.constructor}} |                                                           |
+|    +-------------------------------------+                                                           |
 |                                                                                                      |
 | I was receiving respectively:                                                                        |
 |                                                                                                      |
-| +---------------------------------------+                                                            |
-| | function Object() { [native code] }   |                                                            |
-| | function Function() { [native code] } |                                                            |
-| +---------------------------------------+                                                            |
+|    +---------------------------------------+                                                         |
+|    | function Object() { [native code] }   |                                                         |
+|    | function Function() { [native code] } |                                                         |
+|    +---------------------------------------+                                                         |
 |                                                                                                      |
 | It didn't make much sense for me. I could reach objects and functions but I couldn't really execute  |
 | them? I couldn't perform arithmetic operations either? I left it there and took a small break.       |
