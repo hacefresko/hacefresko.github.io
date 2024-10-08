@@ -5,7 +5,7 @@ html {
 }
 
 pre {
-    font-family: monospace;
+    font-family: "Courier Prime", monospace;
 }
 
 ::selection {
@@ -34,7 +34,7 @@ img {
 }
 
 .post {
-    width: 70em !important;
+    width: 60em !important;
     white-space: pre-wrap;
     text-align: justify;
 

@@ -78,13 +78,13 @@ Would produce the following response:
 <img src="/assets/images/posts/2024-04-06/query-filter-bypass.png" style="width: 45em"/>
 
 As you can see, the raw response from the Solr endpoint shows only one parameter "q", instead of two as before, the parameter "qt" and a new parameter "hacked?q" with the contents of the previous restrictive default "q". What is happening here is something like the following:
-
-1. The server receives the request "/api/solr/User/select?qt=/select?hacked&q=*" and processes the parameters in alphabetical order.
-2. The server processes parameter "q" and adds the query "*" to be executed.
-3. The server processes parameter "qt" and rewrites the URL from "/api/solr/User/select" to "/api/solr/User/select?hacked".
-4. When it has finished processing the parameters supplied by the user, the server appends the default query to restrict access to other user's data to the URL without the user supplied parameters: "/api/solr/User/select?hacked?q=&lt;default_query>"
-5. The server processes the remaining parameters, in this case, "hacked?q", which does nothing.
-
+<ol>
+<li>The server receives the request "/api/solr/User/select?qt=/select?hacked&q=*" and processes the parameters in alphabetical order.</li>
+<li>The server processes parameter "q" and adds the query "*" to be executed.</li>
+<li>The server processes parameter "qt" and rewrites the URL from "/api/solr/User/select" to "/api/solr/User/select?hacked".</li>
+<li>When it has finished processing the parameters supplied by the user, the server appends the default query to restrict access to other user's data to the URL without the user supplied parameters: "/api/solr/User/select?hacked?q=&lt;default_query>"</li>
+<li>The server processes the remaining parameters, in this case, "hacked?q", which does nothing.</li>
+</ol>
 This way, the default query that restricted access to other user's data gets bypassed, allowing the retrieval of all the information available in the Solr endpoint. In the case of the "User" core, which contained all kinds of personal information, there were 796,165 entries, as can be seen in the previous image. Also, there were other cores mentioned before with critical data such as "UserLoginHistory", "BusinessEntityAccount", "EntityPayment", "PasswordHistory", etc. Here are some examples of the retrieved data:
 
 <img src="/assets/images/posts/2024-04-06/login-history.png" style="width: 35em"/>
