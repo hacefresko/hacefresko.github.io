@@ -1,154 +1,53 @@
 ---
 layout: post
 permalink: /posts/liquidjs-ssti-to-arbitrary-file-read
+title: Exploiting an SSTI in LiquidJS to read files in the server
 header:
   teaser: posts/2021-10-26/poc_screenshot.jpeg
 ---
-
 {% raw %}
-┌────────────────────────────────────────────────────────────┐
-│ Exploiting an SSTI in LiquidJS to read files in the server │
-┌──────────────────────────────────────────────────────────────────────────────────────────────────────┐
-│ ~ october 26, 2021 - web, bugbounties                                                                │
-│                                                                                                      │
-│ Hello there. I have been thinking about starting a cybersecurity blog since the last few months, in  │
-│ order to share my learning process and my experiences as a beginner in this field and contribute to  │
-│ the community. I have finally decided to do it, and I thought it would be great to start by writing  │
-│ about my first bug bounty, which I earned a couple of months ago. Since the vulnerability hasn't     │
-│ been disclosed, I won't be able to give as much information as I would like, but I hope you like it  │
-│ anyway :)                                                                                            │
-│                                                                                                      │
-│ This summer, I decided to try my luck with bug bounties as I had already gained a decent amount of   │
-│ experience with web application vulnerabilities. I spent some days just looking at some public bug   │
-│ bounty programs, until I found one or two that were affordable for me. They offered interesting      │
-│ functionalities to test for bugs (at least more than a simple online shop), didn't pay bounties too  │
-│ big so they were not attracting attention of more experienced hackers and hadn't received a valid    │
-│ report for 9 months. So I opened Burp and started clicking around.                                   │
-│                                                                                                      │
-│ After some hours of figuring out how the applications worked and what was the user workflow, I       │
-│ stumbled upon an interesting feature of one of them. It offered a client and an admin portal, where  │
-│ administrators could manage clients, services provided, etc. One of the functionalities of the       │
-│ administrator panel was to create and edit email templates, so then the admin could use them to send │
-│ a personalized email to a set of clients all at once. I immediately thought of an old                │
-│ <a href="https://hackerone.com/reports/125980/">HackerOne report to Uber</a> I once read about, where an SSTI was found on the rendering engine for      │
-│ email templates. SSTI (Server Side Template Injection) is a vulnerability of template engines in     │
-│ which the user can inject native template syntax in the rendered text, which will be executed on the │
-│ server. Depending on the template engine, the severity can vary, sometimes leading to RCE.           │
-│                                                                                                      │
-│ When I opened the email template editor, the first thing I saw was that the default value for the    │
-│ header was "{{account.logo}}"", which looked like templating language syntax, so I started to play   │
-│ around. The email template editor had a button to test the template which sent the result directly   │
-│ to the admin email address. This way, any rendered content that produced the template would be       │
-│ directly sent to the admin (me). I started by submitting "{{account}}", which produced an email sent │
-│ to me with "[object Object]". "[object Object]" is the raw representation of a JavaScript object     │
-│ that is not prepared to be represented as a string. I was very excited because this input I          │
-│ submitted produced a value that the application was not prepared to show. This meant that the        │
-│ developers might have missed to check the user input and that SSTI might be possible.                │
-│                                                                                                      │
-│ And because of this initial excitement, I was not thinking clearly so I made the mistake of          │
-│ assuming the technology behind the template engine without actually checking it. As I had recently   │
-│ worked with SSTIs in Nunjucks (a common JavaScript template engine), I directly assumed this was the │
-│ template engine. I didn't think twice, it seemed so clear to me. I went to an                        │
-│ <a href="http://disse.cting.org/2016/08/02/2016-08-02-sandbox-break-out-nunjucks-template-engine">article I had recently read about</a> and started trying to get RCE.                                     │
-│                                                                                                      │
-│ I adapted the payload in the article to my case and submitted the following:                         │
-│                                                                                                      │
-│    ┌───────────────────────────────────────────────────┐                                             │
-│    │ {{account.constructor(function(){return 123})()}} │                                             │
-│    └───────────────────────────────────────────────────┘                                             │
-│                                                                                                      │
-│ But no email was sent. Also tried:                                                                   │
-│                                                                                                      │
-│    ┌─────────────────────────────────────────────────────┐                                           │
-│    │ {{account.constructor.constructor('return 123')()}} │                                           │
-│    └─────────────────────────────────────────────────────┘                                           │
-│                                                                                                      │
-│ But again, no email. Then, I started testing a bit more, and found that "{{7*7}}" didn't work        │
-│ either. However, by submitting the following two payloads:                                           │
-│                                                                                                      │
-│    ┌─────────────────────────────────────┐                                                           │
-│    │ {{account.constructor}}             │                                                           │
-│    │ {{account.constructor.constructor}} │                                                           │
-│    └─────────────────────────────────────┘                                                           │
-│                                                                                                      │
-│ I was receiving respectively:                                                                        │
-│                                                                                                      │
-│    ┌───────────────────────────────────────┐                                                         │
-│    │ function Object() { [native code] }   │                                                         │
-│    │ function Function() { [native code] } │                                                         │
-│    └───────────────────────────────────────┘                                                         │
-│                                                                                                      │
-│ It didn't make much sense for me. I could reach objects and functions but I couldn't really execute  │
-│ them? I couldn't perform arithmetic operations either? I left it there and took a small break.       │
-│                                                                                                      │
-│                                                                                                      │<img src="/assets/images/posts/2021-10-26/tries_screenshot.png" style="width: 30em;">
-│                                                                                                      │
-│                                                                                                      │
-│                                                                                                      │
-│                                                                                                      │
-│                                                                                                      │
-│                                                                                                      │
-│                                                                                                      │
-│                                                                                                      │
-│                                                                                                      │
-│                                                                                                      │
-│                                                                                                      │
-│                                                                                                      │
-│                                                                                                      │
-│                                                                                                      │
-│                                                                                                      │
-│                                                                                                      │
-│                                                                                                      │
-│                                                                                                      │
-│                                                                                                      │
-│ After one or two days I suddenly thought that I didn't actually check if the template engine was     │
-│ Nunjucks or if it was any other NodeJS template engine. I searched for the most common NodeJS        │
-│ template engines that used "{{ }}" as tags and started testing. However, I was still very excited    │
-│ and still not thinking clearly. I didn't research too much and none of the engines I found were      │
-│ working either. I tried Mustache, Handlebars, Atpl... I was getting very frustrated and knew that I  │
-│ had to take a bigger break since I was not used to bug hunting. I learnt that this can be way much   │
-│ more frustrating than any CTF or wargame I had played out there.                                     │
-│                                                                                                      │
-│ Summer ended and University started, so I knew I would have less free time in a matter of weeks. And │
-│ it still annoyed me not having been able to actually find the real bug and exploit it. So one day I  │
-│ just started reading my notes about it, recreating all the steps I took. When I got  the part where  │
-│ I "did some research about NodeJS template engines", I saw that it was very poor research, so I      │
-│ decided to retry again, at least to actually understand what was going on behind that template       │
-│ engine.                                                                                              │
-│                                                                                                      │
-│ This time, I did my research properly by testing each possible option. I finally discarded Nunjuck   │
-│ by testing all syntax it offered and did the same with other common template engines for NodeJS. At  │
-│ the end, it turned out to be <a href="https://liquidjs.com/">LiquidJS</a>, a template engine similar to <a href="https://github.com/Shopify/liquid">Liquid</a> used by Shopify or GitHub │
-│ pages. LiquidJS does not allow real code execution such as other engines. In addition, I couldn't    │
-│ find any example on the Internet about exploiting SSTI on LiquidJS, so I had to find my own way.     │
-│ Looking at the documentation, I found the deprecated "include" tag, which allows to render           │
-│ predefined templates. However, an attacker can also include another file, even if it's not a real    │
-│ template, giving access to the whole file system of the server (in fact, when writing this article I │
-│ found <a href="https://github.com/harttle/liquidjs/issues/131">this issue</a> explaining this problematic). In the end, I just had to submit                      │
-│ "{% include '/etc/passwd' %}" in order to receive in my email all the contents of the "/etc/passwd"  │
-│ file.                                                                                                │
-│                                                                                                      │
-│                                                                                                      │<img src="/assets/images/posts/2021-10-26/poc_screenshot.jpeg" style="width: 30em;">
-│                                                                                                      │
-│                                                                                                      │
-│                                                                                                      │
-│                                                                                                      │
-│                                                                                                      │
-│                                                                                                      │
-│                                                                                                      │
-│                                                                                                      │
-│                                                                                                      │
-│                                                                                                      │
-│                                                                                                      │
-│                                                                                                      │
-│                                                                                                      │
-│                                                                                                      │
-│                                                                                                      │
-│                                                                                                      │
-│                                                                                                      │
-│                                                                                                      │
-│ I wasn't able to get RCE, however, I got Arbitrary File Read and a bounty of $1500, which is pretty  │
-│ good for the first time. Thanks for reading it and I hope you liked it :)                            │
-│                                                                                                      │
-└──────────────────────────────────────────────────────────────────────────────────────────────────────┘
+~ october 26, 2021 - web, bugbounties
+
+Hello there. I have been thinking about starting a cybersecurity blog since the last few months, in order to share my learning process and my experiences as a beginner in this field and contribute to the community. I have finally decided to do it, and I thought it would be great to start by writing about my first bug bounty, which I earned a couple of months ago. Since the vulnerability hasn't been disclosed, I won't be able to give as much information as I would like, but I hope you like it anyway :)  
+
+This summer, I decided to try my luck with bug bounties as I had already gained a decent amount of experience with web application vulnerabilities. I spent some days just looking at some public bug bounty programs, until I found one or two that were affordable for me. They offered interesting functionalities to test for bugs (at least more than a simple online shop), didn't pay bounties too big so they were not attracting attention of more experienced hackers and hadn't received a valid report for 9 months. So I opened Burp and started clicking around.  
+
+After some hours of figuring out how the applications worked and what was the user workflow, I stumbled upon an interesting feature of one of them. It offered a client and an admin portal, where administrators could manage clients, services provided, etc. One of the functionalities of the administrator panel was to create and edit email templates, so then the admin could use them to  a personalized email to a set of clients all at once. I immediately thought of an old <a href="https://hackerone.com/reports/125980/">HackerOne report to Uber</a> I once read about, where an SSTI was found on the rendering engine for email templates. SSTI (Server Side Template Injection) is a vulnerability of template engines in which the user can inject native template syntax in the rendered text, which will be executed on  server. Depending on the template engine, the severity can vary, sometimes leading to RCE.  
+
+When I opened the email template editor, the first thing I saw was that the default value for the header was "{{account.logo}}", which looked like templating language syntax, so I started to play around. The email template editor had a button to test the template which sent the result directly to the admin email address. This way, any rendered content that produced the template would be directly sent to the admin (me). I started by submitting "{{account}}", which produced an email  to me with "[object Object]". "[object Object]" is the raw representation of a JavaScript object that is not prepared to be represented as a string. I was very excited because this input I submitted produced a value that the application was not prepared to show. This meant that the developers might have missed to check the user input and that SSTI might be possible. 
+
+And because of this initial excitement, I was not thinking clearly so I made the mistake of assuming the technology behind the template engine without actually checking it. As I had recently worked with SSTIs in Nunjucks (a common JavaScript template engine), I directly assumed this was  template engine. I didn't think twice, it seemed so clear to me. I went to an <a href="http://disse.cting.org/2016/08/02/2016-08-02-sandbox-break-out-nunjucks-template-engine">article I had recently read about</a> and started trying to get RCE. 
+
+I adapted the payload in the article to my case and submitted the following:
+
+<div class="code">{{account.constructor(function(){return 123})()}}</div>
+
+But no email was sent. Also tried: 
+
+<div class="code">{account.constructor.constructor('return 123')()}}</div> 
+
+But again, no email. Then, I started testing a bit more, and found that "{{7*7}}" didn't work either. However, by submitting the following two payloads:
+
+<div class="code">{{account.constructor}}
+{{account.constructor.constructor}}</div>
+
+I was receiving respectively:
+
+<div class="code">function Object() { [native code] }
+function Function() { [native code] }</div>
+
+It didn't make much sense for me. I could reach objects and functions but I couldn't really execute them? I couldn't perform arithmetic operations either? I left it there and took a small break. 
+
+<img src="/assets/images/posts/2021-10-26/tries_screenshot.png" style="width: 30em;">
+
+After one or two days I suddenly thought that I didn't actually check if the template engine was Nunjucks or if it was any other NodeJS template engine. I searched for the most common NodeJS template engines that used "{{ }}" as tags and started testing. However, I was still very  and still not thinking clearly. I didn't research too much and none of the engines I found  working either. I tried Mustache, Handlebars, Atpl... I was getting very frustrated and knew that I had to take a bigger break since I was not used to bug hunting. I learnt that this can be way  more frustrating than any CTF or wargame I had played out there. 
+
+Summer ended and University started, so I knew I would have less free time in a matter of weeks. And it still annoyed me not having been able to actually find the real bug and exploit it. So one day I  just started reading my notes about it, recreating all the steps I took. When I got  the part where  I "did some research about NodeJS template engines", I saw that it was very poor research, so  decided to retry again, at least to actually understand what was going on behind that template engine. 
+
+This time, I did my research properly by testing each possible option. I finally discarded Nunjuck by testing all syntax it offered and did the same with other common template engines for NodeJS. At the end, it turned out to be <a href="https://liquidjs.com/">LiquidJS</a>, a template engine similar to <a href="https://github.com/Shopify/liquid">Liquid</a> used by Shopify or GitHub  pages. LiquidJS does not allow real code execution such as other engines. In addition, I couldn't  find any example on the Internet about exploiting SSTI on LiquidJS, so I had to find my own way. Looking at the documentation, I found the deprecated "include" tag, which allows to render predefined templates. However, an attacker can also include another file, even if it's not a real  template, giving access to the whole file system of the server (in fact, when writing this article I  found <a href="https://github.com/harttle/liquidjs/issues/131">this issue</a> explaining this problematic). In the end, I just had to submit  "{% include '/etc/passwd' %}" in order to receive in my email all the contents of the "/etc/passwd" file.
+
+<img src="/assets/images/posts/2021-10-26/poc_screenshot.jpeg" style="width: 30em;">
+
+I wasn't able to get RCE, however, I got Arbitrary File Read and a bounty of $1500, which is pretty good for the first time. Thanks for reading it and I hope you liked it :) 
+
 {% endraw %}

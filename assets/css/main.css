@@ -23,13 +23,32 @@ a {
 }
 
 img {
-    position: absolute;
-    left: 0;
-    right: 0;
-    margin: 0 auto;
+    display: block;
+    margin-left: auto;
+    margin-right: auto;
 }
 
 .main {
     margin: auto;
     width: fit-content;
+}
+
+.post {
+    width: 70em !important;
+    white-space: pre-wrap;
+    text-align: justify;
+
+    .title, .content, .code {
+        border: .1em solid;
+        padding: 1em;
+    }
+
+    .code {
+        width: fit-content;
+        margin: 0 1em;
+    }
+
+    .content {
+        padding-top: 0;
+    }
 }
