@@ -1,7 +1,7 @@
 html {
     background-color: #000000;
     color: #ffffff;
-    font-size: 1em;
+    font-size: .85em;
 }
 
 pre {
@@ -45,6 +45,7 @@ img {
 
     .code {
         width: fit-content;
+        max-width: 60em;
         margin: 0 1em;
     }
 
