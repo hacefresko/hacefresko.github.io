@@ -34,22 +34,15 @@ img {
 }
 
 .post {
-    width: 60em !important;
+    width: 55em !important;
     white-space: pre-wrap;
     text-align: justify;
 
-    .title, .content, .code {
+    .code {
         border: .1em solid;
         padding: 1em;
-    }
-
-    .code {
         width: fit-content;
-        max-width: 60em;
+        max-width: 55em;
         margin: 0 1em;
-    }
-
-    .content {
-        padding-top: 0;
     }
 }
