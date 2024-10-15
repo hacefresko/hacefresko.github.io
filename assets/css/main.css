@@ -34,8 +34,6 @@ img {
 }
 
 .post {
-    width: 55em !important;
-    min-width: 700px;
     white-space: pre-wrap;
     text-align: justify;
 
@@ -49,3 +47,14 @@ img {
         white-space: pre;
     }
 }
+
+
+/* 
+hack to make it responsible quickly on smartphones: 
+only set a width for devices with > 990px
+*/
+@media only screen and (min-width: 990px) {
+    .post {
+        width: 55em !important;
+    }
+};
