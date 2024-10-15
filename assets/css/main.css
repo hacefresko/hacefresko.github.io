@@ -35,7 +35,7 @@ img {
 
 .post {
     width: 55em !important;
-    min-width: 55em !important;
+    min-width: 700px;
     white-space: pre-wrap;
     text-align: justify;
 
