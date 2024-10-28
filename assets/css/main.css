@@ -44,9 +44,8 @@ img {
 
     .code {
         border: .1em solid;
+        border-color: #ffffff50;
         padding: 1em;
-        width: fit-content;
-        max-width: 51em;
         margin: 0 1em;
         overflow: auto;
         white-space: pre;
