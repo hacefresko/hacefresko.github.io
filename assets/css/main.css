@@ -2,6 +2,7 @@ html {
     background-color: #000000;
     color: #ffffff;
     font-size: 14px;
+    line-height: 1.3em;
 }
 
 body {
@@ -39,7 +40,6 @@ img {
 }
 
 .post {
-    line-height: 1.3em;
     white-space: pre-wrap;
     text-align: justify;
 
