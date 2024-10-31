@@ -1,7 +1,11 @@
 <head>
     <!--title-->
-    <title>{{ page.title }}</title>
-
+    {% if page.title %}
+        <title>{{ page.title }}</title>
+    {% else %}
+        <title>{{ site.title }}</title>
+    {% endif %}
+    
     <!--custom CSS-->
     <link rel="stylesheet" href="/assets/css/main.css">
 
