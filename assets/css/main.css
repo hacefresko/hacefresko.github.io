@@ -10,7 +10,6 @@ body {
 
 pre {
     font-family: "Courier Prime", monospace;
-    line-height: 1.3em;
 }
 
 ::selection {
@@ -40,6 +39,7 @@ img {
 }
 
 .post {
+    line-height: 1.3em;
     white-space: pre-wrap;
     text-align: justify;
 
