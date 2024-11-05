@@ -13,10 +13,10 @@ window.onload = function(){
     
         new Typed('#'+TYPING_ID, {
             strings: [typing_txt],
-            startDelay: 300,
+            startDelay: 350,
             typeSpeed: 100,
             onComplete: async (self) => {
-                await new Promise(r => setTimeout(r, 600));
+                await new Promise(r => setTimeout(r, 700));
                 document.getElementsByClassName("typed-cursor typed-cursor--blink")[0].style.display = "none";
                 typing_result.style.visibility = "visible";
             }
