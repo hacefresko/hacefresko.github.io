@@ -53,6 +53,10 @@ img {
     }
 }
 
+#typing,
+#typing-result {
+    visibility: hidden;
+}
 
 /* 
 hack to make it responsible quickly on smartphones: 
@@ -62,4 +66,4 @@ only set a width for devices with > 990px
     .post {
         width: 55em !important;
     }
-};
+}
