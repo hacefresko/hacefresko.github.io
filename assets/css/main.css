@@ -53,6 +53,13 @@ img {
     }
 }
 
+.post_title{
+    border: .1em solid;
+    border-color: #ffffffff;
+    padding: 1em;
+    width: fit-content;
+}
+
 #typing,
 #typing-result {
     visibility: hidden;

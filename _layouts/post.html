@@ -4,5 +4,8 @@ layout: default
 
 <div class="post">
 <a href="/">< go back</a>
-<div class="content">{{ content }}</div>
+
+<div class="post_title">{{ page.title }}</div>
+<div class="post_header">~ {{ page.date | date: "%B %-d, %Y" | downcase }} - {{ page.tags | join: ", "}}</div>
+<div class="post_content">{{ content }}</div>
 </div>
