@@ -23,7 +23,8 @@ a {
     text-decoration: none;
 
     &:hover {
-        text-decoration: underline;
+        background-color: #00ff64;
+        color: #000000;
     }
 }
 
