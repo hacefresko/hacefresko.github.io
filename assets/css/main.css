@@ -15,7 +15,7 @@ pre {
 
 ::selection {
     color: #000000;
-    background: #00ff50;
+    background: #00ff64;
 }
 
 a {
@@ -69,7 +69,7 @@ img {
 }
 
 .typed-cursor {
-    color: #00ff50;
+    color: #00ff64;
 }
 
 /* 
