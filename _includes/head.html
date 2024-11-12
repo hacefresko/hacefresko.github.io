@@ -5,6 +5,11 @@
     {% else %}
         <title>{{ site.title }}</title>
     {% endif %}
+
+    <!--SEO description-->
+    {% if site.desc %}
+        <meta name="{{ site.desc }}">
+    {% endif %}
     
     <!--custom CSS-->
     <link rel="stylesheet" href="/assets/css/main.css">
