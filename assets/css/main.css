@@ -9,10 +9,6 @@ body {
     margin: 0;
 }
 
-pre {
-    font-family: "Courier Prime", monospace;
-}
-
 ::selection {
     color: #000000;
     background: #00ff70;
