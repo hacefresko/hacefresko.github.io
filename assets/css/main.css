@@ -33,21 +33,21 @@ img {
     border-color: #ffffff50;
 }
 
-.main {
-    margin: auto;
-    margin-top: 1em;
+.decorations {
+    width: 58em;
     border: .1em solid;
-    padding: 0 1em;
+    border-bottom: 0;
+    margin: auto;
+    padding: .4em 1em;
 }
 
-/* 
-hack to make it responsible quickly on smartphones: 
-only set a width for devices with > 990px
-*/
-@media only screen and (min-width: 990px) {
-    .main {
-        width: 58em !important;
-    }
+.main {
+    width: 58em;
+    border: .1em solid;
+    margin: auto;
+    margin-top: 0;
+    margin-bottom: 1em;
+    padding: 0 1em;
 }
 
 .post {
