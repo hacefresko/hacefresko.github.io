@@ -34,8 +34,10 @@ img {
 
 .main {
     margin: auto;
+    margin-top: 1em;
+    border: .1em solid;
+    padding: 1em;
     width: fit-content;
-    height: 100vh;
 }
 
 .post {
@@ -53,10 +55,7 @@ img {
 }
 
 .post_title{
-    border: .1em solid;
-    border-color: #ffffffff;
-    padding: 1em;
-    width: fit-content;
+    padding: 1em 0;
 }
 
 #typing,

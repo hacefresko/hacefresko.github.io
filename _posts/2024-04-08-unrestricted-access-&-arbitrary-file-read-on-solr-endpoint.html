@@ -13,7 +13,7 @@ header:
 It all started when I received an email from a HackerOne private program saying that a new domain was up and running. Given that the program itself is a very old and hardened one, I decided to give it a try since it could be a very good opportunity to hack it. I fired up Burp and started looking around.
 
 
-[ Recon ]
+[[ Recon ]]
 
 After some recon and many hours figuring out how to register a new account (it only allowed US citizens but didn't specify it), I found an API endpoint that disclosed many URLs from the admin interface. I immediately visited some of them and noticed that they were all accessible for regular users, however, the functionalities in them didn't work because the API endpoints they were using were actually restricted. Although this obviously didn't give me the ability to do anything as an admin, I visited all of the URLs looking for something interesting to look into. Eventually, I found a dashboard that had a completely different look than the rest of the application:
 
@@ -40,7 +40,7 @@ For example, to query all entries in the "User" core, we would request:
 However, it was not that easy.
 
 
-[ Getting unrestricted access ]
+[[ Getting unrestricted access ]]
 
 Although the Solr endpoint could be used by regular users, the information available was restricted to that accessible by each user. As an example, querying *all user data* With "/api/solr/User/select?q=*", would only give us *our* user data. This restriction was implemented by also executing a default query containing default conditions such as "only retrieve data belonging to this user". This behavior could be seen in the raw response from the Solr endpoint, in which the attribute "params" contained a list of the executed queries, named "q", with two elements: the default query set by the server ("( tenantId:1 AND ...") and the query requested by the user, ("*"):
 
@@ -90,7 +90,7 @@ This way, the default query that restricted access to other user's data gets byp
 <img src="/assets/images/posts/2024-04-06/payments.png" style="width: 35em"/>
 
 
-[ Reading files from the server ]
+[[ Reading files from the server ]]
 
 Then, after I reported the Unrestricted Access, I continued looking into the Solr endpoint. I tried many payloads I found around for RCEs and path traversal vulnerabilities and discovered that only "GET" requests were allowed, which limited many of the payloads that could possibly work. Although there are some ways to get around this with some shadowy parameters, such as the aforementioned "qt", none of them worked.
 
@@ -115,8 +115,7 @@ So, I wrote a simple script to easily traverse the file system of the server and
 <img src="/assets/images/posts/2024-04-06/creds.png" style="width: 50em"/>
 
 
-[ Conclusion ]
+[[ Conclusion ]]
 
 I ended up reporting both vulnerabilities separately via HackerOne and got a total bounty of $1860, which is not that much taking into account the impact of both vulnerabilities. Anyways, thanks for reading the post and I hope you liked it :)
-
 {% endraw %}
