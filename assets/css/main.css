@@ -37,7 +37,7 @@ img {
     margin: auto;
     margin-top: 1em;
     border: .1em solid;
-    padding: 1em;
+    padding: 0 1em;
 }
 
 /* 
@@ -48,10 +48,6 @@ only set a width for devices with > 990px
     .main {
         width: 58em !important;
     }
-}
-
-.index {
-    
 }
 
 .post {
