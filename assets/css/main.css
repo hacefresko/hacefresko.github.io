@@ -33,21 +33,31 @@ img {
     border-color: #ffffff50;
 }
 
+.main {
+    width: fit-content;
+    margin: auto;
+    margin-top: 1em;
+    margin-bottom: 1em;
+}
+
 .decorations {
-    width: 58em;
     border: .1em solid;
     border-bottom: 0;
-    margin: auto;
     padding: .4em 1em;
 }
 
-.main {
-    width: 58em;
+.content {
     border: .1em solid;
-    margin: auto;
-    margin-top: 0;
-    margin-bottom: 1em;
     padding: 0 1em;
+}
+
+#typing,
+#typing-result {
+    visibility: hidden;
+}
+
+.typed-cursor {
+    color: #00ff70;
 }
 
 .post {
@@ -66,13 +76,4 @@ img {
 
 .post_title{
     padding: 1em 0;
-}
-
-#typing,
-#typing-result {
-    visibility: hidden;
-}
-
-.typed-cursor {
-    color: #00ff70;
 }
