@@ -7,6 +7,7 @@ html {
 
 body {
     margin: 0;
+    height: 100vh;
 }
 
 ::selection {
@@ -37,7 +38,20 @@ img {
     margin-top: 1em;
     border: .1em solid;
     padding: 1em;
-    width: fit-content;
+}
+
+/* 
+hack to make it responsible quickly on smartphones: 
+only set a width for devices with > 990px
+*/
+@media only screen and (min-width: 990px) {
+    .main {
+        width: 58em !important;
+    }
+}
+
+.index {
+    
 }
 
 .post {
@@ -65,14 +79,4 @@ img {
 
 .typed-cursor {
     color: #00ff70;
-}
-
-/* 
-hack to make it responsible quickly on smartphones: 
-only set a width for devices with > 990px
-*/
-@media only screen and (min-width: 990px) {
-    .post {
-        width: 55em !important;
-    }
 }
