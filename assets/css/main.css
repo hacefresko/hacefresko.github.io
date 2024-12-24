@@ -68,7 +68,7 @@ img {
         border: .1em solid;
         border-color: #ffffff50;
         padding: 1em;
-        margin: 0 1em;
+        margin: auto;
         overflow: auto;
         white-space: pre;
         max-width: 760px;
