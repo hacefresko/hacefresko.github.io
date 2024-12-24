@@ -71,6 +71,7 @@ img {
         margin: 0 1em;
         overflow: auto;
         white-space: pre;
+        max-width: 800px;
     }
 }
 
