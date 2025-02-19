@@ -13,8 +13,8 @@ window.onload = function(){
     
         new Typed('#'+TYPING_ID, {
             strings: [typing_txt],
-            startDelay: 700,
-            typeSpeed: 70,
+            startDelay: 500,
+            typeSpeed: 50,
             cursorChar: '█',
             onComplete: async (self) => {
                 await new Promise(r => setTimeout(r, 800));

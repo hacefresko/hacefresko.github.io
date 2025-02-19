@@ -1,13 +1,26 @@
 ---
 layout: post
-title: A new way of obtaining RCE on a Solr server via replication
-date: 2025/02/21
+title: A very unique way of achieving RCE on a Solr server 
+date: 2025/02/02
 tags: web bugbounties
 permalink: /posts/rce-on-solr-server-via-replication
 header:
-  teaser: posts/2024-04-06/passwd.png
+  teaser: 
 ---
 
-{% raw %}
+{% raw %}Hello there! In this post, I will be writing about one of the most beautiful and complex vulnerabilities I have ever found, and how it got triaged as "Duplicate" although I was the only one achieving RCE. I discovered it some weeks ago in the same bug bounty program as the one described in <a href="/posts/unrestricted-access-and-arbitrary-file-read-in-solr-endpoint">my previous post</a>. As back then, since this is a private program, I will need to hide many stuff. However, I can tell you that it belongs to one of the biggest videogames companies, which doesn't have a very good relationship with hackers and other tinkerers ;). I hope you appreciate it and find it as interesting as me!
+
+[[ Previous work ]]
+
+This story begins last year, when I found three vulnerabilities in different Solr servers from a single private program. As already mentioned, some of these vulnerabilities are described in <a href="/posts/unrestricted-access-and-arbitrary-file-read-in-solr-endpoint">another post from this blog</a>. I really recommend reading it first, since it serves as an introduction to some Solr concepts that will be discussed here.
+
+During this time, I also found a blind SSRF in the Solr replication handler of one of those servers, located at "/solr/&lt;core&gt;/replication", which is identified as <a href="https://github.com/murataydemir/CVE-2021-27905">CVE-2021-27905</a>. Since it is not a high or critical severity bug, I didn't report it and decided to keep it to myself in case I could use it in the future as part of a more complex exploit chain.
+
+Some months later (two weeks ago at the time of writing this post), I decided to take another look into it, but taking a more research-like approach to dig much deeper into Solr. I downloaded the last version of the Solr binaries from the <a href="https://solr.apache.org/downloads.html">Solr website</a> and its source code from <a href="https://github.com/apache/solr">Github</a> and followed their <a href="https://solr.apache.org/guide/solr/latest/deployment-guide/solr-control-script-reference.html">deployment guide</a> to start my own Solr testing environemnt.
+
+
+[[ First steps into Solr ]]
+
+
 
 {% endraw %}

@@ -2,7 +2,7 @@ html {
     background-color: #000000;
     color: #ffffff;
     font-size: 14px;
-    line-height: 1.2em;
+    line-height: 1.3em;
 }
 
 body {
@@ -77,4 +77,9 @@ img {
 
 .post_title{
     padding: 1em 0;
+}
+
+.not_found{
+    margin: auto;
+    width: min-content;
 }
