@@ -97,8 +97,14 @@ And then, I executed the "fetchindex" command again and was able to successfuly 
 
 As I have mentioned before, this behavior alone is not a vulnerability on istelf, since this dataset is public and doesn't contain any private information.
 
+Next thing is to add some minor entry to later prove that I can modify the database. To do so, I first stoped the polling of more data from the target server with the replication command "disablepoll", since a new replication would overwrite local changes. Then, I added an entry with ID "1337" and title "Hacked by hacefresk0" :P
+
+<img src="/assets/images/posts/2025-02-21/edit.png" style="width: 60em">
+
+Great! I at this point I had a replica of the dataset from the target server with a newly added 1337-elite-hacker entry which would prove that I could edit the data. Now, I needed to check if I could actually distribute this dataset to the target server or if this was all just a rabbit hole.
 
 
+[[ Replicating to the target server ]]
 
 
 {% endraw %}
