@@ -66,32 +66,15 @@ Once the "start" command has completed, the admin interface can be accessed at "
 
 <img src="/assets/images/posts/2025-02-21/solr_admin.png" style="width: 50em">
 
-The next step is to create a core, which is just a fancy name for a dataset. The following command creates a new empty core named "hacefresk0":
+The next step was to create a core, which is just a fancy name for a dataset. The following command creates a new empty core named "hacefresk0":
 
 <div class="code">$ ./bin/solr create -c hacefresk0</div>
 
 It can then be queried at the select request handler:
 
-<div class="code">$ curl "http://localhost:9000/solr/hacefresk0/select?q=*"
+<img src="/assets/images/posts/2025-02-21/select.png" style="width: 60em">
 
-{
-  "responseHeader":{
-    "status":0,
-    "QTime":0,
-    "params":{
-      "q":"*"
-    }
-  },
-  "response":{
-    "numFound":0,
-    "start":0,
-    "numFoundExact":true,
-    "docs":[ ]
-  }
-}
-</div>
-
-Next step was to configure the replication handler for the core as a follower of the target server "https://target.com/solr/de/". To do so, I needed to edit the core configuration file located at "server/solr/hacefresk0/conf/solrconfig.xml" and add the following entry:
+Then, I needed to configure the replication handler for the core to be a follower of the target server "https://target.com/solr/de/". To do so, I needed to edit the core configuration file located at "server/solr/hacefresk0/conf/solrconfig.xml" and add the following entry:
 
 <div class="code">&#60;requestHandler name="/replication" class="solr.ReplicationHandler" &#62;
   &#60;lst name="slave"&#62;
@@ -99,6 +82,23 @@ Next step was to configure the replication handler for the core as a follower of
         &#60;str name="pollInterval"&#62;00:00:20&#60;/str&#62;
   &#60;/lst&#62;
 &#60;/requestHandler&#62;</div>
+
+After restarting the server, I should be able to replicate the dataset using the "fetchindex" in the replication endpoint. However, the server responded with the following error:
+
+<img src="/assets/images/posts/2025-02-21/whitelist_error.png" style="width: 60em">
+
+Some googling around later, I found that, currently, Solr requires the specified "leaderUrl" to be explicitly whitelisted or to use the flag "-Dsolr.disable.allowUrls=true" on start up. This means that either the target server is using an old Solr version that doesn't implement this protection or that they are explicitely using this flag. Anyways, I restarted the server using this flag:
+
+<div class="code">$ ./bin/solr stop; ./bin/solr start -p 9000 -Dsolr.disable.allowUrls=true</div>
+
+And then, I executed the "fetchindex" command again and was able to successfuly replicate the dataset from the target server!
+
+<img src="/assets/images/posts/2025-02-21/successful_replication.png" style="width: 60em">
+
+As I have mentioned before, this behavior alone is not a vulnerability on istelf, since this dataset is public and doesn't contain any private information.
+
+
+
 
 
 {% endraw %}
