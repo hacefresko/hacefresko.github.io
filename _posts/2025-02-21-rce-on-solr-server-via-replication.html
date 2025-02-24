@@ -1,6 +1,6 @@
 ---
 layout: post
-title: A very fancy technique to obtain RCE on a Solr server 
+title: A very fancy way to obtain RCE on a Solr server 
 date: 2025/02/02
 tags: web bugbounties
 permalink: /posts/rce-on-solr-server-via-replication
@@ -185,13 +185,35 @@ Next step was trying to use this behavior to achieve RCE.
 
 [[ Escalating to RCE ]]
 
-At this point, I started looking for known RCEs in Solr and researching if any of them could be triggered by modifying the core configuration file. I read many helpful articles, but I would like to credit <a href="https://github.com/veracode-research/solr-injection/">this one about "Solr injection"</a> and <a href="https://github.com/Imanfeng/Apache-Solr-RCE
-">this other one about Solr RCEs only</a>, since they were really really helpful. Also, as in <a href="/posts/unrestricted-access-and-arbitrary-file-read-in-solr-endpoint">my other blog post about Solr</a>, I looked at the <a href="https://github.com/search?q=repo%3Aprojectdiscovery%2Fnuclei-templates%20solr&type=code">nuclei templates repository</a>, which is always a good source for exploits. 
+At this point, I started looking for known RCEs in Solr and investigating if any of them could be triggered by modifying the core configuration file. Apart from the Solr docs, I read many helpful articles such as <a href="https://github.com/veracode-research/solr-injection/">this one about "Solr injection"</a> and <a href="https://github.com/Imanfeng/Apache-Solr-RCE
+">this other one about Solr RCEs only</a>. Also, as in <a href="/posts/unrestricted-access-and-arbitrary-file-read-in-solr-endpoint">my other blog post about Solr</a>, I looked at the <a href="https://github.com/search?q=repo%3Aprojectdiscovery%2Fnuclei-templates%20solr&type=code">nuclei templates repository</a>, which is always a good source for exploits. 
 
-As a result, I found many cases in which it had been possible to enable dangerous functionalities in the config file, but then developers had restricted it so that it can only be managed using the Solr binary or environment variables. For example, this was the case with <a href="https://solr.apache.org/guide/solr/latest/indexing-guide/content-streams.html#remote-streaming">remote streaming</a>.
+As a result, I found many cases in which it had been possible to enable dangerous functionalities in the config file, but then developers had restricted it so that it can only be managed using the Solr binary or environment variables. For example, this was the case with <a href="https://solr.apache.org/guide/solr/latest/indexing-guide/content-streams.html#remote-streaming">remote streaming</a>. Another big restriction was that the target server only allowed access to "/select" and "/replication", meaning that I couldn't use any exploit that ultimately relied on other request handlers.
 
-Another big restriction was that the target server only allowed access to "/select" and "/replication", meaning that I couldn't use any exploit that ultimately relied on other request handlers.
+After many rabbit holes, I ended up using <a href="https://velocity.apache.org/">Velocity templates</a>, which are very powerful Java-based templates that had been used in the past for exploiting Solr. Here is an example of a simple one:
 
-After many rabbit holes, I ended up using <a href="https://solr.apache.org/guide/8_11/velocity-response-writer.html">Velocity templates</a>.
+<code class="language-html">&#60;html&#62;
+    &#60;body&#62;
+        Hello $customer.Name!
+        &#60;table&#62;
+        #foreach( $mud in $mudsOnSpecial )
+            #if ( $customer.hasPurchased($mud) )
+                &#60;tr&#62;
+                    &#60;td&#62;$flogger.getPromo( $mud )&#60;/td&#62;
+                &#60;/tr&#62;
+            #end
+        #end
+        &#60;/table&#62;
+    &#60;/body&#62;
+&#60;/html&#62;
+</code>
+
+In older versions, it was possible to use the configuration request handler at "/config" to enable the Velocity engine and use a custom template to achieve RCE. When the developers found out, they restricted its management so that it was only available through the "solrconfig.xml" configuration file.
+
+Taking into account that I could modify the config file of the target server, this situation seemed perfect. However, there was a little inconvinience. In current versions, the .jar libraries that were needed to run the Velocity engine were no longer bundled by default with Solr, so they had to be manually added. To do so, they had to be placed in a directory accessible by Solr and referenced in the config file.
+
+This seemed like a dead end, but I had an idea. Maybe, if I was able to deliver arbitrary config files to the target server, I might also be able to deliver other files such as .jar files. Since they needed to be referenced in the "solrconfig.xml", which I could modify, if this was possible I would be able to enable the Velocity engine. But first, I needed to find those .jar files :D.
+
+As it turned out, they can now be found in <a href="https://github.com/erikhatcher/solr-velocity">a github repo</a> containing a 3rd party plugin that currently "replaces" Velocity, as it has been deprecated since version 9.0.
 
 {% endraw %}
