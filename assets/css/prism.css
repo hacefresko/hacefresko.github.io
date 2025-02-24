@@ -21,7 +21,7 @@ https://prismjs.com/download.html#themes=prism-funky&languages=markup+clike+java
 .token.property,
 .token.symbol,
 .token.tag {
-    color: #00dddd
+    color: #00eeee
 }
 
 .token.attr-name,
@@ -44,7 +44,7 @@ https://prismjs.com/download.html#themes=prism-funky&languages=markup+clike+java
 .token.atrule,
 .token.attr-value,
 .token.keyword {
-    color: #dd00dd
+    color: #ee00ee
 }
 
 .token.important,
