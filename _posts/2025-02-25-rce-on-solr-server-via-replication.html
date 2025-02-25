@@ -219,7 +219,7 @@ After many rabbit holes, I ended up using <a href="https://solr.apache.org/guide
 
 In older versions, it was possible to use the configuration request handler at "/config" to enable the Velocity engine and provide a custom template to achieve RCE. When the developers found out, they restricted its management so that it was only available through the "solrconfig.xml" configuration file.
 
-Taking into account that I could modify the config file of the target server, this situation seemed perfect. However, there was a little inconvinience. In current versions, the .jar libraries that were needed to run the Velocity engine were no longer bundled by default with Solr, since it has been deprecated since version 9.0, so they had to be manually added. To do so, they had to be placed in a directory accessible by Solr and referenced in the config file.
+Taking into account that I could modify the config file of the target server, this situation seemed perfect. However, there was a little inconvenience. In current versions, the .jar libraries that were needed to run the Velocity engine were no longer bundled by default with Solr, since it has been deprecated since version 9.0, so they had to be manually added. To do so, they had to be placed in a directory accessible by Solr and referenced in the config file.
 
 This felt like a dead end, but then I had an idea. Maybe, if I was able to deliver arbitrary config files to the target server, I might be able to deliver .jar files too. Since they are loaded using the "solrconfig.xml", which I could modify, I would be able to enable the Velocity engine in the target server. But first, I needed to find those .jar files :D.
 
@@ -294,7 +294,7 @@ The first result corresponded to the piece of code responsible of disabling the 
 
 <img src="/assets/images/posts/2025-02-25/secureuberfuck.png" style="width: 45em">
 
-Well, that was thrilling. Maybe I could recompile remove these lines and recompile the .jar files so that the resulting Velocity engine had no restrictions. After some trial and error and fixing a broken dependency in the "pom.xml" file of the project, I was able to recompile the .jar files:
+Well, that was thrilling. Maybe I could remove these lines and recompile the .jar files so that the resulting Velocity engine had no restrictions. After some trial and error and fixing a broken dependency in the "pom.xml" file of the project, I was able to recompile the .jar files:
 
 <img src="/assets/images/posts/2025-02-25/maven-success.png" style="width: 45em">
 
@@ -352,4 +352,12 @@ Once I saw the corresponding connections in the ngrok interface, indicating that
 
 <img src="/assets/images/posts/2025-02-25/rce.png" style="width: 55em">
 
+
+[[ Reporting and conclusions ]]
+
+I reported this RCE to the bug bounty program of the company, hoping to receive a generous reward. However, after a few days, they decided to close the report as a Duplicate, which seemed very weird to me. Although I wasn't allowed to see the report which this was a duplicate of, it had a 9.1 severity and had been open for 4 months. Besides, when I reported this, the "/replication" endpoint was closed immediately, which led me to think that the other report was not demonstrating RCE at all. In the end, they ended up paying me a 10% of the bounty that corresponded to a critical vulnerability, which I don't think was fair at all.
+
+Although this has been a very frustrating experience, I wanted to share it with the community anyways, since this was the most complex and fancy vulnerability I have ever found in the wild. Also, I wanted this post to serve as a reminder not to hack for shitty programs, something I won't do again in the future for sure. Be aware of your value and think twice before you give it away to anyone.
+
+If you reached the end of this post, I really hope you liked it and found it as interesting as me. Feel free to contact me on my socials and happy hacking :)
 {% endraw %}
