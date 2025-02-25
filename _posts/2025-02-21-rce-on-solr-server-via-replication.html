@@ -192,7 +192,7 @@ Same as before, I restarted my local server and triggered a replication on the t
 Next step was trying to use this behavior to achieve RCE.
 
 
-[[ Finding a gadget for RCE ]]
+[[ Finding a gadget to get RCE ]]
 
 At this point, I started looking for known RCEs in Solr and investigating if any of them could be triggered by modifying the core configuration file. Apart from the Solr docs, I read many helpful articles such as <a href="https://github.com/veracode-research/solr-injection/">this one about "Solr injection"</a> and <a href="https://github.com/Imanfeng/Apache-Solr-RCE
 ">this other one about Solr RCEs only</a>. Also, as in <a href="/posts/unrestricted-access-and-arbitrary-file-read-in-solr-endpoint">my other blog post about Solr</a>, I looked at the <a href="https://github.com/search?q=repo%3Aprojectdiscovery%2Fnuclei-templates%20solr&type=code">nuclei templates repository</a>, which is always a good source for exploits. 
@@ -201,7 +201,7 @@ As a result, I found many cases in which it had been possible to enable dangerou
 
 After many rabbit holes, I ended up using <a href="https://solr.apache.org/guide/8_11/velocity-response-writer.html">Velocity templates</a>, which are very powerful Java-based templates that had been used in the past for exploiting Solr. Here is an example of a simple one:
 
-<code class="language-html">&#60;html&#62;
+<code class="language-velocity">&#60;html&#62;
     &#60;body&#62;
         Hello $customer.Name!
         &#60;table&#62;
@@ -219,9 +219,9 @@ After many rabbit holes, I ended up using <a href="https://solr.apache.org/guide
 
 In older versions, it was possible to use the configuration request handler at "/config" to enable the Velocity engine and provide a custom template to achieve RCE. When the developers found out, they restricted its management so that it was only available through the "solrconfig.xml" configuration file.
 
-Taking into account that I could modify the config file of the target server, this situation seemed perfect. However, there was a little inconvinience. In current versions, the .jar libraries that were needed to run the Velocity engine were no longer bundled by default with Solr, since it has deprecated since version 9.0, so they had to be manually added. To do so, they had to be placed in a directory accessible by Solr and referenced in the config file.
+Taking into account that I could modify the config file of the target server, this situation seemed perfect. However, there was a little inconvinience. In current versions, the .jar libraries that were needed to run the Velocity engine were no longer bundled by default with Solr, since it has been deprecated since version 9.0, so they had to be manually added. To do so, they had to be placed in a directory accessible by Solr and referenced in the config file.
 
-This seemed like a dead end, but I had an idea. Maybe, if I was able to deliver arbitrary config files to the target server, I might be able to deliver .jar files too. Since they needed to be referenced in the "solrconfig.xml", which I could modify, if this was possible I would be able to enable the Velocity engine in the target server. But first, I needed to find those .jar files :D.
+This felt like a dead end, but then I had an idea. Maybe, if I was able to deliver arbitrary config files to the target server, I might be able to deliver .jar files too. Since they are loaded using the "solrconfig.xml", which I could modify, I would be able to enable the Velocity engine in the target server. But first, I needed to find those .jar files :D.
 
 As it turned out, they can now be found in <a href="https://github.com/erikhatcher/solr-velocity/tree/main/repo">the github repo</a> for a 3rd party Solr plugin that has currently "replaced" Velocity after its deprecation. I downloaded the .jar files and started setting up my local test environment to check if I could replicate them from a leader to a follower.
 
@@ -244,11 +244,11 @@ For the follower, I configured a simple follower replication request handler poi
     &#60;/lst&#62;
 &#60;/requestHandler&#62;</code>
 
-Then, I added some test data to the leader so that it has something to replicate (else, the replication wouldn't take place), and executed the command "fetchindex" on the follower instance. The .jar files were successfully distributed from the leader to the follower!
+I added some test data to the leader so that it has something to replicate (else, the replication wouldn't take place), and executed the command "fetchindex" on the follower instance. The .jar files were successfully distributed from the leader to the follower!
 
 <img src="/assets/images/posts/2025-02-21/jar-replication.png" style="width: 55em">
 
-Once I knew I could distribute the .jar files, I needed to test if I could actually enable Velocity using them. Since I already knew that I could modify the config file remotely, I edited manually the "solrconfig.xml" of the follower to save time, and added a "&lt;lib&gt;" element to import the .jar libraries in the "server/solr/follower/conf/" directory and a "&lt;queryResponseWriter&gt;" element to enable Velocity:
+Once I knew I could distribute the .jar files, I needed to test if I could actually enable Velocity using them. Since I already knew that I could modify the config file remotely, I edited manually the "solrconfig.xml" of the follower to save time. I added a "&lt;lib&gt;" element to import all .jar files in the "server/solr/follower/conf/" directory and a "&lt;queryResponseWriter&gt;" element to enable Velocity:
 
 <code class="language-xml">&#60;lib dir="conf/" regex=".*\.jar"/&#62;
 
@@ -256,24 +256,65 @@ Once I knew I could distribute the .jar files, I needed to test if I could actua
     &#60;str name="template.base.dir"&#62;&#60;/str&#62;
 &#60;/queryResponseWriter&#62;</code>
 
-Then, I restarted the server and accessed "/select?q=:&wt=velocity&v.template=browse&v.layout=layout", which rendered the default Velocity template named "browse", meaning that Velocity had been enabled:
+Then, I restarted the server and accessed "/select?q=1&wt=velocity&v.template=browse&v.layout=layout", which rendered the default Velocity template "browse", meaning that Velocity had been enabled:
 
 <img src="/assets/images/posts/2025-02-21/browse-velocity.png" style="width: 55em">
 
-Great! Now I knew that I was able to enable the Velocity engine by distributing the needed .jar libraries and a custom "solrconfig.xml". The only thing missing right now was providing a malicious Velocity template to achieve RCE. In older versions, once Velocity was enabled, this could be done directly by using URL parameters in the select request handler at "/select", same as when I had rendered the default "browse" template before. However, when I tried this, I learnt that Velocity now only supports executing templates from the local filesystem. Right now, this was not any inconvinience, since I was able to distribute arbitrary files.
+Great. Up to this point, I was able to enable the Velocity engine by distributing the needed .jar libraries and a custom "solrconfig.xml". The only piece missing was to provide a malicious Velocity template to achieve RCE. In older versions, once Velocity was enabled, this could be done directly by using URL parameters in the select request handler at "/select", similar to rendering the default "browse" template as I did before. However, when I tried this, I learnt that Velocity now only supports executing templates from the local filesystem. Since I was able to deliver arbitrary files, this was not a problem, so I jumped straight into rendering a malicious template in my local server to check if I was able to actually get RCE.
+
+I created a simple template that would execute the command "id" on the server and saved it as "rce.vm" at "server/solr/follower/conf/velocity/rce.vm":
+
+<code class="language-velocity">#set($x='')
+#set($rt=$x.class.forName('java.lang.Runtime'))
+#set($chr=$x.class.forName('java.lang.Character'))
+#set($str=$x.class.forName('java.lang.String'))
+#set($ex=$rt.getRuntime().exec('id'))
+$ex.waitFor()
+#set($out=$ex.getInputStream())
+#foreach($i in [1..$out.available()])
+$str.valueOf($chr.toChars($out.read()))
+#end</code>
+
+I restarted the server and accessed "/select?q=1&wt=velocity&v.template=rce" to render it... but it didn't execute the "id" command:
+
+<img src="/assets/images/posts/2025-02-21/failed-local-rce.png" style="width: 45em">
+
+After checking too many times if the syntax of the template was correct and searching for hours on the Internet, I "kind of understood" why it was not rendering correctly. It looked like the Velocity engine was configured so that it did not allow instantiation of new classes (something related to an internal class named "SecureUberspector", see <a href="https://issues.apache.org/jira/browse/VELOCITY-931">this issue</a> if you are somehow that interested). This essentially meant that calls to "$x.class.forName()" were not being executed at all. Fuck.
+
+At this point, I ran out of ideas, so I took a break for a few days.
 
 
+[[ Patching Velocity ]]
 
+One night, while revisiting my notes for this, I thought that maybe I was able to find some answers in the <a href="https://github.com/erikhatcher/solr-velocity/tree/main">Velocity plugin github repo</a>, since it also contained the Java code for the Velocity .jar files. I searched for the string "SecureUberspector" and, to my surprise, there were two results:
 
+<img src="/assets/images/posts/2025-02-21/github-velocity.png" style="width: 45em">
 
+The first result corresponded to the piece of code responsible of disabling the instantiation of new classes at "solr-velocity/src/main/java/org/apache/solr/response/VelocityResponseWriter.java"!
 
-<code class="language-html">&#60;title&#62;Hacked by hacefresk0&#60;/title&#62;
+<img src="/assets/images/posts/2025-02-21/secureuberfuck.png" style="width: 45em">
+
+Well, that was thrilling. Maybe I could recompile remove these lines and recompile the .jar files so that the resulting Velocity engine had no restrictions. After some trial and error and fixing a broken dependency in the "pom.xml" file of the project, I was able to recompile the .jar files:
+
+<img src="/assets/images/posts/2025-02-21/maven-success.png" style="width: 45em">
+
+I substituted the previous Velocity libraries for these ones on my local Solr instance, in which Velocity was already configured from the previous tests, and tried again accessing the "rce.vm" template at "/select?q=1&wt=velocity&v.template=rce":
+
+<img src="/assets/images/posts/2025-02-21/local-rce.png" style="width: 45em">
+
+Awesome! I had a working exploit to get RCE on the target server! Now, since I was already recompiling the Velocity plugin and delivering the custom .jar libraries, I thought that it would be cooler to modify the default "browse" template, which comes bundled inside the .jar files, so that I didn't have to send the templates too. So, I created a PoC template that showed that I was able to obtain RCE on the target server by executing the "id" command:
+
+<code class="language-velocity">&#60;title&#62;Hacked by hacefresk0&#60;/title&#62;
 &#60;h1&#62;Hacked by hacefresk0&#60;/h1&#62;
 &#60;br&#62;
 &#60;pre&#62;
 #set($x='') #set($rt=$x.class.forName('java.lang.Runtime')) #set($chr=$x.class.forName('java.lang.Character')) #set($str=$x.class.forName('java.lang.String')) #set($ex=$rt.getRuntime().exec('id')) $ex.waitFor() #set($out=$ex.getInputStream()) #foreach($i in [1..$out.available()])$str.valueOf($chr.toChars($out.read()))#end
 &#60;/pre&#62;</code>
 
+I recompiled the .jar libraries again and prepared the exploit. To recap, these were the steps to achieve RCE on the target server:
+<ol>
+<li>test</li>
+</ol>
 
 
 {% endraw %}
