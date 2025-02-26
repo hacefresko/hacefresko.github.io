@@ -1,11 +1,11 @@
 ---
 layout: post
 title: A very fancy way to obtain RCE on a Solr server 
-date: 2025/02/25
+date: 2025/02/26
 tags: web bugbounties
 permalink: /posts/rce-on-solr-server-via-replication
 header:
-  teaser: /assets/images/posts/2025-02-25/rce.png
+  teaser: /assets/images/posts/2025-02-26/rce.png
 ---
 
 {% raw %}Hello there! In this post, I will be discussing one of the most beautiful and complex vulnerabilities I have ever found, and how it got triaged as "Duplicate", although I was the only one achieving RCE. I discovered it some weeks ago in the same bug bounty program as the ones described in <a href="/posts/unrestricted-access-and-arbitrary-file-read-in-solr-endpoint">my previous post</a>. As back then, since this is a private program, I will need to hide some information. However, I can tell you that it belongs to one of the biggest videogames companies, which doesn't have a very good relationship with hackers and other tinkerers ;).
@@ -17,7 +17,7 @@ Also, just to mention it, I have omitted many rabbit holes in which I fell durin
 
 This story begins last year, when I found three vulnerabilities in different Solr servers from a single private program. As already mentioned, some of them are described in <a href="/posts/unrestricted-access-and-arbitrary-file-read-in-solr-endpoint">another post from this blog</a>. I really recommend reading it, as it serves as an introduction to some Solr concepts that will be discussed here.
 
-<img src="/assets/images/posts/2025-02-25/previous-vulns.png"style="width: 45em">
+<img src="/assets/images/posts/2025-02-26/previous-vulns.png"style="width: 45em">
 
 During this time, I also found a known blind SSRF identified as <a href="https://nvd.nist.gov/vuln/detail/CVE-2021-27905">CVE-2021-27905</a> in one of these Solr servers, which only contained the frontend data for all European stores (product names, prices, links, etc). This server could be queried freely and didn't have any private information. Since this was not a high or critical severity bug, I didn't report it and decided to keep it to myself in case I could use it in the future as part of a more complex exploit chain. In the end, I just left this behind and moved into some other unrelated project.
 
@@ -34,7 +34,7 @@ My first objective was to fully understand this blind SSRF, since I originally f
 
 In order to learn more about all the functionalities involved in this bug, I needed to look at the Solr docs. Luckily, Apache maintains a huge web portal to host the Solr documentation, so it was not difficult to find the <a href="https://solr.apache.org/guide/solr/latest/deployment-guide/user-managed-index-replication.html">chapter related to Index Replication</a>. As I learnt, replication allows creating an infrastructure of several Solr instances in which a leader instance distributes copies of its data to the follower instances. The leader then manages updates to the data while the followers manage the querying.
 
-<img src="/assets/images/posts/2025-02-25/replication.png" style="width: 15em">
+<img src="/assets/images/posts/2025-02-26/replication.png" style="width: 15em">
 
 Each of the instances that participate in this infrastructure must have an available replication request handler ("/replication"), which accepts a series of commands depending if its a leader or a follower. These commands are detailed in <a href="https://solr.apache.org/guide/solr/latest/deployment-guide/user-managed-index-replication.html#http-api-commands-for-the-replicationhandler">one of the sections of the Index Replication chapter</a>, in which "fetchindex" is described as follows:
 
@@ -70,7 +70,7 @@ So, I downloaded the latest binary release from the <a href="https://solr.apache
 
 Once the "start" command has completed, the admin interface can be accessed at "http://127.0.0.1:9000/":
 
-<img src="/assets/images/posts/2025-02-25/solr_admin.png" style="width: 50em">
+<img src="/assets/images/posts/2025-02-26/solr_admin.png" style="width: 50em">
 
 The next step was to create a core. The following command creates a new empty core named "hacefresk0":
 
@@ -78,7 +78,7 @@ The next step was to create a core. The following command creates a new empty co
 
 It can then be queried at the select request handler:
 
-<img src="/assets/images/posts/2025-02-25/select.png" style="width: 55em">
+<img src="/assets/images/posts/2025-02-26/select.png" style="width: 55em">
 
 Then, I needed to configure the replication request handler for the core to be a follower of the target server. To do so, I needed to edit the core configuration file located at "server/solr/hacefresk0/conf/solrconfig.xml" and add the following element:
 
@@ -91,7 +91,7 @@ Then, I needed to configure the replication request handler for the core to be a
 
 After restarting the server, I should be able to replicate the dataset using the "fetchindex" in the replication endpoint. However, the server responded with the following error:
 
-<img src="/assets/images/posts/2025-02-25/whitelist_error.png" style="width: 55em">
+<img src="/assets/images/posts/2025-02-26/whitelist_error.png" style="width: 55em">
 
 Some googling around later, I found that Solr now requires the specified "leaderUrl" to be explicitly whitelisted or to use the flag "-Dsolr.disable.allowUrls=true" on startup. I found this funny because it meant that the target server was probably using this flag too, although Solr warns that it's not a secure practice. Anyways, I restarted the server using the flag:
 
@@ -99,17 +99,17 @@ Some googling around later, I found that Solr now requires the specified "leader
 
 I executed the "fetchindex" command again and was able to successfully replicate the dataset from the target server!
 
-<img src="/assets/images/posts/2025-02-25/follower-replication.png" style="width: 55em">
+<img src="/assets/images/posts/2025-02-26/follower-replication.png" style="width: 55em">
 
 I could now query it locally:
 
-<img src="/assets/images/posts/2025-02-25/successful_replication.png" style="width: 55em">
+<img src="/assets/images/posts/2025-02-26/successful_replication.png" style="width: 55em">
 
 As I have mentioned before, take into account that this dataset is public and doesn't contain any private information, so this behavior alone is not a vulnerability in itself.
 
 Next thing is to add a harmless entry to later prove that I can modify the database. To do so, I first stopped the polling of more data from the target server with the replication command "disablepoll", since a new replication would overwrite local changes. Then, I added an entry with ID "1337" and title "Hacked by hacefresk0" :P
 
-<img src="/assets/images/posts/2025-02-25/edit.png" style="width: 55em">
+<img src="/assets/images/posts/2025-02-26/edit.png" style="width: 55em">
 
 At this point, I had a replica of the dataset from the target server with a newly added 1337-elite-hacker entry. Now, I needed to check if I could actually distribute this dataset to the target server or if this was all just a rabbit hole.
 
@@ -140,7 +140,7 @@ To check that the replication leader was working correctly, I first wanted to te
 
 Then, I executed the "fetchindex" command and successfully replicated the dataset from the local leader! 
 
-<img src="/assets/images/posts/2025-02-25/local-replication.png" style="width: 55em">
+<img src="/assets/images/posts/2025-02-26/local-replication.png" style="width: 55em">
 
 Now it was time to execute it on the target server. I accessed the following URL to trigger the replication:
 
@@ -154,7 +154,7 @@ I got back to it and started trying to trigger some errors in the target server 
 
 When everything was ready, I triggered the replication in the target server using the "fetchindex" command and... it worked! When I queried for my custom 1337 entry, there it was for everyone to see it:
 
-<img src="/assets/images/posts/2025-02-25/replication-success.png" style="width: 55em">
+<img src="/assets/images/posts/2025-02-26/replication-success.png" style="width: 55em">
 
 I was able to successfully modify the data for every European store of the company, meaning that I could deface them, introduce malicious links and much more! However, now that I could distribute data into the target Solr server, I wanted to know what else was I capable of.
 
@@ -195,7 +195,7 @@ The file "hacefresk0-config.xml" was a copy of the default "solrconfig.xml" for 
 
 Same as before, I restarted my local server and triggered a replication on the target server using the "fetchindex" command. I received several requests on the ngrok interface, indicating that the replication had successfully executed. When I executed the "details" command on the target server, it showed that the "hacefresk0-config.xml" had been correctly replicated and the leader URL now contained the ":443", meaning that I had successfully modified the configuration of the target server!
 
-<img src="/assets/images/posts/2025-02-25/config-replicated.png" style="width: 55em">
+<img src="/assets/images/posts/2025-02-26/config-replicated.png" style="width: 55em">
 
 Next step was trying to use this behavior to achieve RCE.
 
@@ -254,7 +254,7 @@ For the follower, I configured a simple follower replication request handler poi
 
 I added some test data to the leader so that it has something to replicate (else, the replication wouldn't take place), and executed the command "fetchindex" on the follower instance. The .jar files were successfully distributed from the leader to the follower!
 
-<img src="/assets/images/posts/2025-02-25/jar-replication.png" style="width: 55em">
+<img src="/assets/images/posts/2025-02-26/jar-replication.png" style="width: 55em">
 
 Once I knew I could distribute the .jar libraries, I needed to test if I could actually enable Velocity using them. Since I already knew that I could modify the config file remotely, I edited manually the "solrconfig.xml" of the follower to save time. I added a "&lt;lib&gt;" element to import all .jar libraries in the "server/solr/follower/conf/" directory and a "&lt;queryResponseWriter&gt;" element to enable Velocity:
 
@@ -266,7 +266,7 @@ Once I knew I could distribute the .jar libraries, I needed to test if I could a
 
 Then, I restarted the server and accessed "/select?q=1&wt=velocity&v.template=browse&v.layout=layout", which rendered the default Velocity template "browse", meaning that Velocity had been enabled:
 
-<img src="/assets/images/posts/2025-02-25/browse-velocity.png" style="width: 55em">
+<img src="/assets/images/posts/2025-02-26/browse-velocity.png" style="width: 55em">
 
 Great. Up to this point, I was able to enable the Velocity engine by distributing the needed .jar libraries and a custom "solrconfig.xml". The only piece missing was to provide a malicious Velocity template to achieve RCE. In older versions, once Velocity was enabled, this could be done directly by using URL parameters in the select request handler at "/select", similar to rendering the default "browse" template as I did before. However, when I tried this, I learnt that Velocity now only supports executing templates from the local filesystem. Since I was able to deliver arbitrary files, this was not a problem, so I jumped straight into rendering a malicious template in my local server to check if I was able to actually get RCE.
 
@@ -285,7 +285,7 @@ $str.valueOf($chr.toChars($out.read()))
 
 I restarted the server and accessed "/select?q=1&wt=velocity&v.template=rce" to render it... but it didn't execute the "id" command:
 
-<img src="/assets/images/posts/2025-02-25/failed-local-rce.png" style="width: 45em">
+<img src="/assets/images/posts/2025-02-26/failed-local-rce.png" style="width: 45em">
 
 After checking too many times if the syntax of the template was correct and searching for hours on the Internet, I "kind of understood" why it was not rendering correctly. It looked like the Velocity engine was configured so that it did not allow instantiation of new classes (something related to an internal class named "SecureUberspector", see <a href="https://issues.apache.org/jira/browse/VELOCITY-931">this issue</a> if you are somehow that interested). This essentially meant that calls to "$x.class.forName()" were not being executed at all. Fuck.
 
@@ -296,21 +296,23 @@ At this point, I ran out of ideas, so I took a break for a few days.
 
 One night, while revisiting my notes for this, I thought that I might be able to find some answers in the <a href="https://github.com/erikhatcher/solr-velocity/tree/main">Velocity plugin github repo</a>, since it also contained the Java code for the Velocity .jar files. I searched for the string "SecureUberspector" and, to my surprise, there were two results:
 
-<img src="/assets/images/posts/2025-02-25/github-velocity.png" style="width: 45em">
+<img src="/assets/images/posts/2025-02-26/github-velocity.png" style="width: 45em">
 
 The first result corresponded to the piece of code responsible of disabling the instantiation of new classes at "solr-velocity/src/main/java/org/apache/solr/response/VelocityResponseWriter.java"!
 
-<img src="/assets/images/posts/2025-02-25/secureuberfuck.png" style="width: 45em">
+<img src="/assets/images/posts/2025-02-26/secureuberfuck.png" style="width: 45em">
 
 Well, that was thrilling. Maybe I could remove these lines and recompile the .jar files so that the resulting Velocity engine had no restrictions. After some trial and error and fixing a broken dependency in the "pom.xml" file of the project, I was able to recompile the .jar files:
 
-<img src="/assets/images/posts/2025-02-25/maven-success.png" style="width: 45em">
+<img src="/assets/images/posts/2025-02-26/maven-success.png" style="width: 45em">
 
 I substituted the previous Velocity libraries for these ones on my local Solr instance, in which Velocity was already configured from the previous tests, and tried again accessing the "rce.vm" template at "/select?q=1&wt=velocity&v.template=rce":
 
-<img src="/assets/images/posts/2025-02-25/local-rce.png" style="width: 45em">
+<img src="/assets/images/posts/2025-02-26/local-rce.png" style="width: 45em">
 
-Awesome! I had a working exploit to get RCE on the target server! Now, since I was already recompiling the Velocity plugin and delivering the custom .jar libraries, I thought that it would be cooler to modify the default "browse" template, which comes bundled inside the .jar files, so that I didn't have to send a malicious template too. So, I created a PoC template that showed that I was able to obtain RCE on the target server by executing the "id" command:
+Awesome! I had a theoretical exploit to get RCE on the target server! Now, I had to test it.
+
+Since I was already recompiling the Velocity plugin and delivering the custom .jar libraries, I thought that it would be way cooler to modify the default "browse" template that comes bundled in the .jar files, so that I didn't have to deliver a malicious template along with these libraries. This way, I edited the template at "src/main/resources/browse.vm" and created a PoC that would show that I was able to obtain RCE on the target server by executing the "id" command:
 
 <code class="language-velocity">&#60;title&#62;Hacked by hacefresk0&#60;/title&#62;
 &#60;h1&#62;Hacked by hacefresk0&#60;/h1&#62;
@@ -358,7 +360,7 @@ Now, I triggered the replication in the target server by accessing the following
 
 Once I saw the corresponding connections in the ngrok interface indicating that the replication was successful, I accessed the malicious "browse" template in the target server at "https://target.com/solr/de/select?q=*&wt=velocity&v.template=browse". The command "id" had been successfully executed in the server :D
 
-<img src="/assets/images/posts/2025-02-25/rce.png" style="width: 55em">
+<img src="/assets/images/posts/2025-02-26/rce.png" style="width: 55em">
 
 
 [[ Reporting and conclusions ]]
