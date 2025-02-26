@@ -2,17 +2,11 @@ html {
     background-color: #000000;
     color: #ffffff;
     font-size: 14px;
-    line-height: 1.2em;
 }
 
 body {
     margin: 0;
     height: 100vh;
-}
-
-::selection {
-    color: #000000;
-    background: #00ff70;
 }
 
 a {
@@ -31,6 +25,23 @@ img {
     margin-right: auto;
     border: .1em solid;
     border-color: #ffffff50;
+}
+code {
+    white-space: pre-wrap;
+    text-align: justify;
+    border: .1em solid;
+    border-color: #ffffff50;
+    padding: 1em;
+    margin: auto;
+    overflow: auto;
+    white-space: pre;
+    max-width: 760px;
+    display: block;
+}
+
+::selection {
+    color: #000000;
+    background: #00ff70;
 }
 
 .main {
@@ -63,18 +74,13 @@ img {
 .post {
     white-space: pre-wrap;
     text-align: justify;
-
-    .code {
-        border: .1em solid;
-        border-color: #ffffff50;
-        padding: 1em;
-        margin: auto;
-        overflow: auto;
-        white-space: pre;
-        max-width: 760px;
-    }
 }
 
 .post_title{
     padding: 1em 0;
+}
+
+.not_found{
+    margin: auto;
+    width: min-content;
 }

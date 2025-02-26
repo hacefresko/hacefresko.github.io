@@ -21,21 +21,21 @@ After some recon and many hours figuring out how to register a new account (it o
 
 Some googling later, I found that this dashboard is a fork of Kibana named <a href="https://github.com/LucidWorks/banana">Banana</a> and is used to work with Apache Solr, which is a search platform written in Java that usually contains a lot of important data and, therefore, is a very juicy target. So, I looked at the endpoints that the dashboard was using and found the Solr endpoint itself:
 
-<div class="code">/api/solr/banana</div>
+<code>/api/solr/banana</code>
 
 It didn't respond with any data, but it also didn't throw any errors and the response corresponded to that given directly by Solr, so this meant that any user could interact directly with the endpoint. Great, that was worth a look.
 
 After learning about Solr and reading some articles about common vulnerabilities and misconfigurations such as <a href="https://github.com/veracode-research/solr-injection/">this one</a>, I started by trying to get all cores available, which, very roughly, are kind of the different sets of data available in the Solr endpoint. This is done by requesting the following resource:
 
-<div class="code">/api/solr/admin/cores</div>
+<code>/api/solr/admin/cores</code>
 
 Which successfully responded with more than 100 results such as "User", "UserLoginHistory", "EntityPayment", etc. They could be queried at:
 
-<div class="code">/api/solr/&lt;core>/select?q=&lt;query></div>
+<code>/api/solr/&lt;core>/select?q=&lt;query></code>
 
 For example, to query all entries in the "User" core, we would request:
 
-<div class="code">/api/solr/User/select?q=*</div>
+<code>/api/solr/User/select?q=*</code>
 
 However, it was not that easy.
 
@@ -50,19 +50,19 @@ This mechanism was not mentioned in any post about hacking Solr and it might eve
 
 One of the *classic* ways to trick Solr into doing some nasty things is by using the "qt" parameter. If enabled, it allows rewriting the request handler, which is what tells the server how to process the request. For example, in the case of "/api/solr/User/select", the request handler would be "/select". Other request handlers are "/config", "/update", etc. Essentially, this means that the following request:
 
-<div class="code">/api/solr/User/select?qt=/config</div>
+<code>/api/solr/User/select?qt=/config</code>
 
 Would be rewritten as:
 
-<div class="code">/api/solr/User/config</div>
+<code>/api/solr/User/config</code>
 
 In fact, sometimes, the rewrite affects everything that the parameter "qt" includes. For example, the following request:
 
-<div class="code">/api/solr/User/select?qt=/test-handler?param=1337</div>
+<code>/api/solr/User/select?qt=/test-handler?param=1337</code>
 
 Would be rewritten to:
 
-<div class="code">/api/solr/User/test-handler?param=1337</div>
+<code>/api/solr/User/test-handler?param=1337</code>
 
 // Obviously, I am not a Solr developer so I don't know the inner workings of this feature.
 // Be aware that this behavior may only affect certain versions and configurations and the
@@ -70,7 +70,7 @@ Would be rewritten to:
 
 This way, I played extensively with the "qt" parameter until I found that the following request:
 
-<div class="code">/api/solr/User/select?qt=/select?hacked&q=*</div>
+<code>/api/solr/User/select?qt=/select?hacked&q=*</code>
 
 Would produce the following response:
 
@@ -98,11 +98,11 @@ I ended up looking at the <a href="https://github.com/search?q=repo%3Aprojectdis
 
 <a href="https://github.com/projectdiscovery/nuclei-templates/blob/main/http/vulnerabilities/apache/apache-solr-file-read.yaml">One of the techniques</a> allowed Arbitrary File Read on Solr versions <= 8.8.1 and used the following payload the contents of "/etc/passwd":
 
-<div class="code">/solr/User/debug/dump?stream.url=file:///etc/passwd&amp;param=ContentStream</div>
+<code>/solr/User/debug/dump?stream.url=file:///etc/passwd&amp;param=ContentStream</code>
 
 At first, it didn't work since it seemed like the server was only accepting requests to "/api/solr/User/select". However, after some tinkering, I was able to use once more the parameter "qt" to rewrite the URL from "/api/solr/User/select" to "/api/solr/User/debug/dump" and sucessfully exfiltrate the contents of "/etc/passwd"! The resulting payload was:
 
-<div class="code">/api/solr/User/select?qt=/debug/dump&amp;stream.url=file:///etc/passwd&amp;param=ContentStream</div>
+<code>/api/solr/User/select?qt=/debug/dump&amp;stream.url=file:///etc/passwd&amp;param=ContentStream</code>
 
 <img src="/assets/images/posts/2024-04-06/passwd.png" style="width: 45em"/>
 
