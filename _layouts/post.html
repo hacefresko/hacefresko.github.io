@@ -2,9 +2,9 @@
 layout: default
 ---
 <div class="post">
-{% if page.lang == "es" %}<a href="/es/">< atrás</a>{% else %}<a href="/">< go back</a>{% endif %}
+<a href="/">< go back</a>
 
 <div class="post_title">[ {{ page.title }} ]</div>
-<div class="post_header">~ {{ page.date | date: "%-d/%-m/%Y" }} - {{ page.tags | join: ", "}}</div>
+<div class="post_header">~ {{ page.date | date: "%B %-d, %Y" | downcase }} - {{ page.tags | join: ", "}}</div>
 <div class="post_content">{{ content }}</div>
 </div>
