@@ -2,7 +2,7 @@
 layout: default
 ---
 <div class="post">
-{% if page.lang == "es" %}<a href="/es/">< atrás</a>{% else %}<a href="/">< go back</a>{% endif %}
+{% if page.lang == "es" %}<a href="/es/">< atrás</a>{% else %}<a href="/">< go back</a>{% endif %}<span class="lan_selector">[{% if page.lang == "es" %}<a href="{{ page.permalink | remove: '/es' }}">english</a>{% else %}<a href="/es{{ page.permalink }}">español</a>{% endif %}]</span>
 
 <div class="post_title">[ {{ page.title }} ]</div>
 <div class="post_header">~ {{ page.date | date: "%-d/%-m/%Y" }} - {{ page.tags | join: ", "}}</div>

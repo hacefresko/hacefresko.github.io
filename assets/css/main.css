@@ -84,3 +84,7 @@ code {
     margin: auto;
     width: min-content;
 }
+
+.lan_selector{
+    float: right;
+}
