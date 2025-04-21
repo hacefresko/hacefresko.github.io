@@ -4,8 +4,9 @@ const TYPING_RESULT_ID = "typing-result"
 window.onload = function(){
     var typing = document.getElementById(TYPING_ID);
     var typing_result = document.getElementById(TYPING_RESULT_ID);
+    var visited = document.cookie.includes("visited=true");
 
-    if (typing != null && typing_result != null){
+    if (typing != null && typing_result != null && visited){
         let typing_txt = typing.innerHTML;
 
         typing.innerHTML = "";
@@ -22,5 +23,7 @@ window.onload = function(){
                 typing_result.style.visibility = "visible";
             }
         });
+
+        document.cookie = "visited=true; Max-Age=600";
     }
 }
