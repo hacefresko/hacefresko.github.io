@@ -6,7 +6,7 @@ window.onload = function(){
     var typing_result = document.getElementById(TYPING_RESULT_ID);
     var visited = document.cookie.includes("visited=true");
 
-    if (typing != null && typing_result != null && visited){
+    if (typing != null && typing_result != null && !visited){
         let typing_txt = typing.innerHTML;
 
         typing.innerHTML = "";
