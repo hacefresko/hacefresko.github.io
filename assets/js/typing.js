@@ -6,24 +6,30 @@ window.onload = function(){
     var typing_result = document.getElementById(TYPING_RESULT_ID);
     var visited = document.cookie.includes("visited=true");
 
-    if (typing != null && typing_result != null && !visited){
-        let typing_txt = typing.innerHTML;
+    if (typing != null && typing_result != null){
+        if (visited){
+            typing.style.visibility = "visible";
+            typing_result.style.visibility = "visible";
+        }
+        else {
+            let typing_txt = typing.innerHTML;
 
-        typing.innerHTML = "";
-        typing.style.visibility = "visible";
+            typing.innerHTML = "";
+            typing.style.visibility = "visible";
+        
+            new Typed('#'+TYPING_ID, {
+                strings: [typing_txt],
+                startDelay: 500,
+                typeSpeed: 50,
+                cursorChar: '█',
+                onComplete: async (self) => {
+                    await new Promise(r => setTimeout(r, 800));
+                    document.getElementsByClassName("typed-cursor typed-cursor--blink")[0].style.display = "none";
+                    typing_result.style.visibility = "visible";
+                }
+            });
     
-        new Typed('#'+TYPING_ID, {
-            strings: [typing_txt],
-            startDelay: 500,
-            typeSpeed: 50,
-            cursorChar: '█',
-            onComplete: async (self) => {
-                await new Promise(r => setTimeout(r, 800));
-                document.getElementsByClassName("typed-cursor typed-cursor--blink")[0].style.display = "none";
-                typing_result.style.visibility = "visible";
-            }
-        });
-
-        document.cookie = "visited=true; Max-Age=600";
+            document.cookie = "visited=true; Max-Age=600";   
+        }
     }
 }
