@@ -45,22 +45,28 @@ code {
     background: #00ff70;
 }
 
-.main {
+#main {
     width: min-content;
-    margin: auto;
-    margin-top: 1em;
-    margin-bottom: 1em;
+    position: relative;
+    margin-left: auto;
+    margin-right: auto;
 }
 
-.decorations {
+#decorations {
     border: .1em solid;
     border-bottom: 0;
     padding: .4em 1em;
+    cursor: move;
 }
 
-.content {
+#content {
     border: .1em solid;
     padding: 0 1em;
+}
+
+#not_found{
+    margin: auto;
+    width: min-content;
 }
 
 #typing,
@@ -72,16 +78,28 @@ code {
     color: #00ff70;
 }
 
-.post {
+#post {
     white-space: pre-wrap;
     text-align: justify;
 }
 
-.post_title{
+#post_title{
     padding: 1em 0;
 }
 
-.not_found{
-    margin: auto;
-    width: min-content;
+#\33 d-container {
+    position: relative;
+    z-index: 2;
+    background: #000000;
+}
+
+#\33 d-shadow::before {
+    position: absolute;
+    content: "";
+    z-index: 1;
+    top: 1em;
+    right: 1em;
+    border: 1px dashed #ffffff;
+    width: 100%;
+    height: 100%;
 }
