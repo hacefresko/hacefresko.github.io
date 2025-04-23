@@ -1,7 +1,19 @@
+const TYPING_ID = "typing"
+const TYPING_RESULT_ID = "typing-result"
+
+
+// Reset everything
+function resetFunctionalities(){
+    localStorage.clear();
+    location.reload();
+}
+
+
+// Movable window logic
 function makeDraggable (movable, header) {
     let currentPosX = 0, currentPosY = 0, previousPosX = 0, previousPosY = 0;
 
-    // Restore previous position if > 10 minutes
+    // Restore previous position if < 10 minutes from previous movement
     let ts = localStorage.getItem("pos_ts");
     if ((new Date().getTime() - 10*60*1000) < ts){
         movable.style.top = localStorage.getItem("pos_top");
@@ -51,5 +63,42 @@ function makeDraggable (movable, header) {
 
 
 document.addEventListener("DOMContentLoaded", (e) => {
+
+    // Movable window
     makeDraggable(document.getElementById('main'), document.getElementById('decorations'));
+
+
+    // Typing
+    var typing = document.getElementById(TYPING_ID);
+    var typing_result = document.getElementById(TYPING_RESULT_ID);
+    var visited =  localStorage.getItem("typed");
+
+    if (typing != null && typing_result != null){
+        // Omit typing if < 10 mins from last typed
+        if (visited != null && ((new Date().getTime() - 10*60*1000) < visited)){
+            typing.style.visibility = "visible";
+            typing_result.style.visibility = "visible";
+        }
+        else {
+            let typing_txt = typing.innerHTML;
+
+            typing.innerHTML = "";
+            typing.style.visibility = "visible";
+        
+            new Typed('#'+TYPING_ID, {
+                strings: [typing_txt],
+                startDelay: 500,
+                typeSpeed: 50,
+                cursorChar: '█',
+                onComplete: async (self) => {
+                    await new Promise(r => setTimeout(r, 800));
+                    document.getElementsByClassName("typed-cursor typed-cursor--blink")[0].style.display = "none";
+                    typing_result.style.visibility = "visible";
+                }
+            });
+    
+
+            localStorage.setItem("typed", new Date().getTime());
+        }
+    }
 });
