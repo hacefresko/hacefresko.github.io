@@ -20,6 +20,8 @@ function makeDraggable (movable, header) {
         movable.style.left = localStorage.getItem("pos_left");
     }
 
+    // Make it visible
+    movable.style.display = "inherit";
 
     header.onmousedown = dragMouseDown;
 
