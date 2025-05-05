@@ -98,8 +98,8 @@ code {
     position: absolute;
     content: "";
     z-index: 1;
-    top: 1em;
-    right: 1em;
+    top: .7em;
+    right: .7em;
     border: 1px dashed #ffffff;
     width: 100%;
     height: 100%;
