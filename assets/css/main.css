@@ -1,3 +1,8 @@
+@font-face { 
+    font-family: "unifont"; 
+    src: url("/assets/css/unifont-16.0.03.otf") format('opentype'); 
+}
+
 html {
     background-color: #000000;
     color: #ffffff;
@@ -6,11 +11,6 @@ html {
 body {
     margin: 0;
     height: 98vh;
-}
-
-@font-face { 
-    font-family: "unifont"; 
-    src: url("/assets/css/unifont-16.0.03.otf") format('opentype'); 
 }
 
 pre, code {
