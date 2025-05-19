@@ -13,7 +13,7 @@ header:
 Also, just to mention it, I have omitted many rabbit holes in which I fell during this research and some obscure Solr details that are not that interesting for this post, since it was already getting too long and technical. I hope you like it and find it as interesting as me!
 
 
-[[ Previous work ]]
+[ Previous work ]
 
 This story begins last year, when I found three vulnerabilities in different Solr servers from a single private program. As already mentioned, some of them are described in <a href="/posts/unrestricted-access-and-arbitrary-file-read-in-solr-endpoint">another post from this blog</a>. I really recommend reading it, as it serves as an introduction to some Solr concepts that will be discussed here.
 
@@ -26,7 +26,7 @@ Some months later (two weeks ago at the time of writing this post), I decided th
 Now, with a more positive perspective in mind, when I remembered that I had a blind SSRF in a program in which I had already found two high and one critical bugs, I knew that I had to take another look. However, this time I was going to take a more research-like approach and was decided to dig much deeper into Solr. I quickly verified that the blind SSRF was still exploitable and got right into it.
 
 
-[[ Understanding the blind SSRF ]]
+[ Understanding the blind SSRF ]
 
 My first objective was to fully understand this blind SSRF, since I originally found it by looking for common Solr vulnerabilities and didn't go any deeper. It was located at "/solr/&lt;core&gt;/replication", which is the replication request handler for a core. Essentially, cores are the different sets of data that are available in the Solr server. In this case, the server had one core for each language. For example, using the "de" core, the vulnerability could be triggered by visiting the following URL:
 
@@ -62,7 +62,7 @@ This would be very useful, since, theoretically, I could just replicate the data
 Great. The first step now was to deploy a local Solr instance and check if I could replicate the dataset from the target server.
 
 
-[[ Creating my own Solr instance ]]
+[ Creating my own Solr instance ]
 
 So, I downloaded the latest binary release from the <a href="https://solr.apache.org/downloads.html">Solr website</a> and followed their <a href="https://solr.apache.org/guide/solr/latest/deployment-guide/installing-solr.html">deployment guide</a>. This binary release includes a command line interface tool that allows starting/stopping Solr, managing cores, etc. This way, a new Solr server can be spawned on port 9000 using the following command:
 
@@ -114,7 +114,7 @@ Next thing is to add a harmless entry to later prove that I can modify the datab
 At this point, I had a replica of the dataset from the target server with a newly added 1337-elite-hacker entry. Now, I needed to check if I could actually distribute this dataset to the target server or if this was all just a rabbit hole.
 
 
-[[ Replicating to the target server ]]
+[ Replicating to the target server ]
 
 In order to configure my local server to be a replication leader instead of a follower, I needed to modify the configuration for the replication request handler that I had previously added to the core config file:
 
@@ -159,7 +159,7 @@ When everything was ready, I triggered the replication in the target server usin
 I was able to successfully modify the data for every European store of the company, meaning that I could deface them, introduce malicious links and much more! However, now that I could distribute data into the target Solr server, I wanted to know what else was I capable of.
 
 
-[[ Modifying the target server configuration ]]
+[ Modifying the target server configuration ]
 
 Earlier, while reading the <a href="https://solr.apache.org/guide/solr/latest/deployment-guide/user-managed-index-replication.html#configuring-a-leader-server">Solr docs about creating a replication leader</a>, I glanced at one of the possible parameters for a "leader" element in the replication request handler config:
 
@@ -200,7 +200,7 @@ Same as before, I restarted my local server and triggered a replication on the t
 Next step was trying to use this behavior to achieve RCE.
 
 
-[[ Finding a gadget to get RCE ]]
+[ Finding a gadget to get RCE ]
 
 At this point, I started looking for known RCEs in Solr and investigating if any of them could be triggered by modifying the core configuration file. Apart from the Solr docs, I read many helpful articles such as <a href="https://github.com/veracode-research/solr-injection/">this one about "Solr injection"</a> and <a href="https://github.com/Imanfeng/Apache-Solr-RCE
 ">this other one about Solr RCEs only</a>. Also, as in <a href="/posts/unrestricted-access-and-arbitrary-file-read-in-solr-endpoint">my other blog post about Solr</a>, I looked at the <a href="https://github.com/search?q=repo%3Aprojectdiscovery%2Fnuclei-templates%20solr&type=code">nuclei templates repository</a>, which is always a good source for exploits. 
@@ -292,7 +292,7 @@ After checking too many times if the syntax of the template was correct and sear
 At this point, I ran out of ideas, so I took a break for a few days.
 
 
-[[ Patching Velocity ]]
+[ Patching Velocity ]
 
 One night, while revisiting my notes for this, I thought that I might be able to find some answers in the <a href="https://github.com/erikhatcher/solr-velocity/tree/main">Velocity plugin github repo</a>, since it also contained the Java code for the Velocity .jar files. I searched for the string "SecureUberspector" and, to my surprise, there were two results:
 
@@ -360,10 +360,10 @@ Now, I triggered the replication in the target server by accessing the following
 
 Once I saw the corresponding connections in the ngrok interface indicating that the replication was successful, I accessed the malicious "browse" template in the target server at "https://target.com/solr/de/select?q=*&wt=velocity&v.template=browse". The command "id" had been successfully executed in the server :D
 
-<img src="/assets/images/posts/2025-02-26/rce.png" style="width: 50em">
+<img src="/assets/images/posts/2025-02-26/rce.png" style="width: 45em">
 
 
-[[ Reporting and conclusions ]]
+[ Reporting and conclusions ]
 
 I reported this RCE to the bug bounty program of the company, hoping to receive a generous reward. However, after a few days, they decided to close the report as a Duplicate, which seemed very weird to me. Although I wasn't allowed to see the report which this was a duplicate of, it had a 9.1 severity and had been open for 4 months. Besides, when I reported this, the "/replication" endpoint was closed immediately, which led me to think that the other report was not demonstrating RCE at all. In the end, they ended up paying me a 10% of the bounty that corresponded to a critical vulnerability, which I don't think was fair at all.
 
