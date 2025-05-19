@@ -15,7 +15,7 @@ After some hours of figuring out how the applications worked and what was the us
 
 When I opened the email template editor, the first thing I saw was that the default value for the header was "{{account.logo}}", which looked like templating language syntax, so I started to play around. 
 
-<img src="/assets/images/posts/2021-10-26/account_logo.png" style="width: 40em;">
+<img src="/assets/images/posts/2021-10-26/account_logo.png" style="width: 35em;">
 
 The email template editor had a button to test the template which sent the result directly to the admin email address. This way, any rendered content that produced the template would be directly sent to the admin (me). I started by submitting "{{account}}", which produced an email  to me with "[object Object]". "[object Object]" is the raw representation of a JavaScript object that is not prepared to be represented as a string. I was very excited because this input I submitted produced a value that the application was not prepared to show. This meant that the developers might have missed to check the user input and that SSTI might be possible. 
 
@@ -41,7 +41,7 @@ function Function() { [native code] }</code>
 
 It didn't make much sense for me. I could reach objects and functions but I couldn't really execute them? I couldn't perform arithmetic operations either? I left it there and took a small break. 
 
-<img src="/assets/images/posts/2021-10-26/tries_screenshot.png" style="width: 35em;">
+<img src="/assets/images/posts/2021-10-26/tries_screenshot.png" style="width: 30em;">
 
 After one or two days I suddenly thought that I didn't actually check if the template engine was Nunjucks or if it was any other NodeJS template engine. I searched for the most common NodeJS template engines that used "{{ }}" as tags and started testing. However, I was still very nervous and still not thinking clearly. I didn't research too much and none of the engines I found  working either. I tried Mustache, Handlebars, Atpl... I was getting very frustrated and knew that I had to take a bigger break since I was not used to bug hunting. I learnt that this can be way more frustrating than any CTF or wargame I had played out there. 
 
@@ -51,8 +51,7 @@ This time, I did my research properly by testing each possible option. I finally
 
 <code class="language-javascript">{% include '/etc/passwd' %}</code>
 
-<img src="/assets/images/posts/2021-10-26/poc_screenshot.jpeg" style="width: 35em;">
+<img src="/assets/images/posts/2021-10-26/poc_screenshot.jpeg" style="width: 30em;">
 
 I wasn't able to get RCE, however, I got Arbitrary File Read and a bounty of $1500, which is pretty good for the first time. Thanks for reading it and I hope you liked it :) 
-
 {% endraw %}
