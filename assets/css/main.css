@@ -1,20 +1,12 @@
-@font-face { 
-    font-family: "unifont"; 
-    src: url("/assets/css/unifont-16.0.03.otf") format('opentype'); 
-}
-
 html {
     background-color: #000000;
     color: #ffffff;
+    font-size: 14px;
 }
 
 body {
     margin: 0;
     height: 98vh;
-}
-
-pre, code {
-    font-family: "unifont", monospace;
 }
 
 a {
@@ -89,6 +81,7 @@ code {
 
 #post {
     white-space: pre-wrap;
+    text-align: justify;
 }
 
 #post_title{
