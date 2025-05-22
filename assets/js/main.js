@@ -20,7 +20,7 @@ function makeDraggable (movable_id, header_id) {
     }
 
     // Make it visible
-    movable.style.display = "inherit";
+    movable.style.visibility = "visible";
 
     header.onmousedown = dragMouseDown;
 
@@ -100,7 +100,7 @@ function animateTyping(typing_id, typing_result_id){
 }
 
 
-document.addEventListener("DOMContentLoaded", (e) => {
+document.fonts.ready.then(() => {
     // Enable movable window
     makeDraggable("main", "decorations");
 
