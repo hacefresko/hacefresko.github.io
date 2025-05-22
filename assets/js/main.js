@@ -1,7 +1,3 @@
-const TYPING_ID = "typing"
-const TYPING_RESULT_ID = "typing-result"
-
-
 // Reset everything
 function resetFunctionalities(){
     localStorage.clear();
@@ -10,7 +6,10 @@ function resetFunctionalities(){
 
 
 // Movable window logic
-function makeDraggable (movable, header) {
+function makeDraggable (movable_id, header_id) {
+    var movable = document.getElementById(movable_id);
+    var header = document.getElementById(header_id);
+
     let currentPosX = 0, currentPosY = 0, previousPosX = 0, previousPosY = 0;
 
     // Restore previous position if < 10 minutes from previous movement
@@ -64,15 +63,10 @@ function makeDraggable (movable, header) {
 }
 
 
-document.addEventListener("DOMContentLoaded", (e) => {
-
-    // Movable window
-    makeDraggable(document.getElementById('main'), document.getElementById('decorations'));
-
-
-    // Typing
-    var typing = document.getElementById(TYPING_ID);
-    var typing_result = document.getElementById(TYPING_RESULT_ID);
+// Typing
+function animateTyping(typing_id, typing_result_id){
+    var typing = document.getElementById(typing_id);
+    var typing_result = document.getElementById(typing_result_id);
     var visited =  localStorage.getItem("typed");
 
     if (typing != null && typing_result != null){
@@ -87,7 +81,7 @@ document.addEventListener("DOMContentLoaded", (e) => {
             typing.innerHTML = "";
             typing.style.visibility = "visible";
         
-            new Typed('#'+TYPING_ID, {
+            new Typed('#'+typing_id, {
                 strings: [typing_txt],
                 startDelay: 500,
                 typeSpeed: 50,
@@ -103,4 +97,13 @@ document.addEventListener("DOMContentLoaded", (e) => {
             localStorage.setItem("typed", new Date().getTime());
         }
     }
+}
+
+
+document.addEventListener("DOMContentLoaded", (e) => {
+    // Enable movable window
+    makeDraggable("main", "decorations");
+
+    // Enable typing
+    animateTyping("typing", "typing-result");
 });
