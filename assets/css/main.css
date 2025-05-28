@@ -15,6 +15,7 @@ body {
 
 pre, code {
     font-family: "unifont", monospace;
+    font-size: 14px;
 }
 
 a {
