@@ -89,6 +89,7 @@ function animateTyping(typing_id, typing_result_id){
                 onComplete: async (self) => {
                     await new Promise(r => setTimeout(r, 800));
                     document.getElementsByClassName("typed-cursor typed-cursor--blink")[0].style.display = "none";
+                    await new Promise(r => setTimeout(r, 300));
                     typing_result.style.visibility = "visible";
                 }
             });
