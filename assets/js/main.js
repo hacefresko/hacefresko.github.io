@@ -101,10 +101,12 @@ function animateTyping(typing_id, typing_result_id){
 }
 
 
-document.fonts.ready.then(() => {
-    // Enable movable window
-    makeDraggable("main", "decorations");
-
-    // Enable typing
-    animateTyping("typing", "typing-result");
-});
+document.addEventListener('DOMContentLoaded', () => {
+    document.fonts.ready.then(() => {
+        // Enable movable window
+        makeDraggable("main", "decorations");
+    
+        // Enable typing
+        animateTyping("typing", "typing-result");
+    });
+}
