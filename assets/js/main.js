@@ -109,4 +109,4 @@ document.addEventListener('DOMContentLoaded', () => {
         // Enable typing
         animateTyping("typing", "typing-result");
     });
-}
+});
