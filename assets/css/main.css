@@ -79,6 +79,7 @@ code {
 #content {
     border: .1em solid;
     padding: 0 1em;
+    white-space: pre-wrap;
 }
 
 #not_found{
@@ -95,8 +96,14 @@ code {
     color: #00ff70;
 }
 
-#post {
-    white-space: pre-wrap;
+#page {
+    min-height: 16em;
+    position: relative;
+}
+
+#links {
+    position: absolute;
+    bottom: 0;
 }
 
 #post_title{
