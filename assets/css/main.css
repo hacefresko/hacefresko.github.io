@@ -85,6 +85,7 @@ code {
 #not_found{
     margin: auto;
     width: min-content;
+    white-space: unset;
 }
 
 #typing,
