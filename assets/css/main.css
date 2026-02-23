@@ -24,6 +24,7 @@ body {
 
 pre, code {
     font-family: "unifont", monospace;
+    line-height: 1.2;
 }
 
 a {
