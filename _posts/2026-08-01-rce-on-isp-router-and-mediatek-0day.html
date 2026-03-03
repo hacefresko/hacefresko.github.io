@@ -1,0 +1,113 @@
+---
+layout: post
+title: From breaking into my ISP router to finding a Mediatek kernel 0day
+date: 2025/06/02
+tags: iot 0day
+permalink: /posts/rce-on-isp-router-and-mediatek-0day
+header:
+  teaser: /assets/images/posts/2026-06-01/zyxel_mediatek_teaser.jpg
+---
+
+{% raw %}Hi there! In this blog post, I will be discussing how I broke into my ISP router by using a command injection, how I found another even better command injection inside, and how I ended up finding and exploiting a remote heap overflow in the kernel driver of the Mediatek chipset inside the router. These vulnerabilities have been disclosed over the past months and have been assigned the following CVEs:
+
+- CVE-2025-13942: Zyxel unauthenticated command injection in UPnP daemon
+- CVE-2025-13943: Zyxel authenticated command injection in log export CGI
+- CVE-2026-XXXX: Mediatek MTXXX WPS heap overflow
+
+As usual, this research is heavily based on reverse engineering and a fair amount of trial and error, so excuse me if there are any mistakes, specially in low level kernel stuff, since this is a very complex topic. If you find something that is awfully wrong and want to help me correct it, I am absolutely open to it. Anyways, let's start with the blog, since there is a lot to cover.
+
+<img src="/assets/images/posts/2026-06-01/zyxel_mediatek_teaser.jpg" style="width: 30em">
+
+[ Some context ]
+
+This journey begins in late summer 2025, when my colleague <a href="https://x.com/s3rg0x">Sergio</a> and I decided to give <a href="https://www.zerodayinitiative.com/Pwn2OwnIreland2025Rules.html">Pwn2Own Ireland 2025</a> a shot, targeting a couple of embedded devices. However, we underestimated the tight timeframe of the competition, and our day jobs did not leave us with enough time to properly focus on it. After many intense days (and nights) of hacking, we were not able to come up with a working exploit (although we did collect a decent number of DoS scripts lol). After dealing with the frustration, I decided to take a break from hacking for a few months and dedicate my free time to resting and enjoying life. Of course, that did not happen and, instead, I somehow ended up diving into this massive research project.
+
+The thing is that I had changed my Internet provider a couple of months ago, so my new ISP had delivered a new router. Although I am obviously not going to refer to this ISP by its name because it probably won't never fix anything described in here, it is a medium sized one here in Spain that was gaining a lot of popularity at the moment due to offering good quality Internet at a low price. So, as always, I wanted to know what was inside this new router that would effectively act as the door to my home. No SSH nor telnet was available, so I opened my browser and navigated to the router's IP and, after authenticating with the credentials that the ISP guy told me when installing the router ("user:user", lol), I was able to access the admin interface:
+
+<img src="/assets/images/posts/2026-06-01/user_admin_panel.png" style="width: 40em">
+
+The top-right corner revealed the model of the router, a "Zyxel EX3301-T0". After navigating around, it quickly became obvious that this was not the "admin" interface, but a "regular user" interface, since it did not allow uploading a new firmware nor enabling SSH or any other protocol to access the device. Although this is a common practice in ISP routers, I still wanted to access the device. At this point, as any user that wants to access its router would do, I opened it to try finding a UART interface or something similar, which was easy enough since the UART port had some pins already set:
+
+<img src="/assets/images/posts/2026-06-01/pcb.png" style="width: 40em">
+
+Connecting to the UART interface revealed console output but no direct shell. By pressing any key, a login prompt appeared and introducing credentials "user:user" gave a restricted Zyxel shell:
+
+<code>EX3301-T0 Username: user
+Password: 
+ZySH> ?
+cfg                       - DAL command line interface
+debug                     - &#60;N/A&#62;
+dns                       - ZYXEL command line
+dsllinestatus             - Show Econet DSL line status
+ethwanctl                 - ZYXEL command line
+exit                      - Close an active terminal session
+history                   - Display or clear CLI history
+ifconfig                  - Show network interface configuration
+ping                      - Send ICMP ECHO_REQUEST to network hosts
+pppoectl                  - ZYXEL command line
+sys                       - ZYXEL command line
+tcpdump                   - Text based packet capture utility
+traceroute                - monitor each routed node during whole routing path to &#60;host&#62;
+vcautohuntctl             - ZYXEL command line
+voicedbgcli               - ZYXEL command line
+wan                       - ZYXEL command line
+wlan                      - ZYXEL command line
+zycli                     - ZYXEL command line
+ZySH></code>
+
+However, most commands did nothing and none of them gave direct access to the OS. Regarding the bootloader, the device used a Zyxel proprietary one ("ZyXEL zloader v1.4.4"). It allowed stopping autoboot, but only exposed a very restricted shell in which no boot commands could be easily modified to later access the OS, as it is <a href="https://www.synacktiv.com/publications/i-hack-u-boot">sometimes possible with U-Boot</a>:
+
+<code>ZyXEL zloader v1.4.4 (10/15/2021 - 11:54:15)
+Multiboot client version: 2.5
+Not found TC Phy
+Not found TC Phy
+Not found TC Phy
+Not found TC Phy
+Not found TC Phy
+  GE Rext AnaCal Done! (5)(0x1b)
+
+Hit any key to stop autoboot:  5
+
+ZHAL> help
+ATEN    x[,y]         set BootExtension Debug Flag (y=password)
+ATSE    x             show the seed of password generator
+ATDC                  disable check model mechanism
+ATSH                  dump manufacturer related data in ROM
+ATRT    [x,y,z,u]     RAM read/write test (x=level, y=start addr, z=end addr, u=iterations)
+ATGO                  boot up whole system
+ATSR    [x]           system reboot
+ATUR    x[,y]         upgrade RAS image (filename, partition number)
+ZHAL></code>
+
+In short, no easy access to the device :(
+  
+Then, I started looking around on the Internet to check if people had found an easy way in that did not require too much effort. I ended up finding an article, which I won't be sharing because it explicitely names the ISP, that described a way of extracting the admin password from the web interface. It basically exploited an authenticated command injection in the dynamic DNS configuration page. I tried this technique, but nothing seemed to happen. Also, when introducing special characters in other forms to check if there was any other easy command injections, the following message appeared ("It is not possible to write special characters"), and no request was sent:
+
+<img src="/assets/images/posts/2026-06-01/no_special_chars.png" style="width: 25em">
+
+Further analysis revealed that authenticated HTTP requests had their bodies encrypted, which was enough to keep me away for the moment. I stopped there and did not continue further.
+
+
+[ Breaking into the router ]
+
+However, as usual, I could not stop thinking about this, since an ISP router seemed a fairly easy target and was starting to damage my ego. So, I just created a folder in my vuln research directory and started diving a bit deeper into this. First thing first, I did a proper port scan, since I had not executed one because I was only taking a look earlier:
+
+<code>$ nmap -sV -O -Pn -p- -oN nmap.log 192.168.1.1
+
+Nmap scan report for _gateway (192.168.1.1)
+Host is up (0.025s latency).
+Not shown: 65526 closed tcp ports (reset)
+PORT      STATE    SERVICE   VERSION
+21/tcp    open     ftp
+22/tcp    filtered ssh
+23/tcp    filtered telnet
+53/tcp    open     domain    (unknown banner: Domain Name Server)
+80/tcp    open     http
+443/tcp   open     ssl/https
+2601/tcp  open     zebra?
+49152/tcp open     unknown
+49153/tcp open     unknown
+
+[...]</code>
+
+{% endraw %}
