@@ -22,15 +22,63 @@ As usual, this research is heavily based on reverse engineering and a fair amoun
 
 This journey begins in late summer 2025, when my colleague <a href="https://x.com/s3rg0x">Sergio</a> and I decided to give <a href="https://www.zerodayinitiative.com/Pwn2OwnIreland2025Rules.html">Pwn2Own Ireland 2025</a> a shot, targeting a couple of embedded devices. However, we underestimated the tight timeframe of the competition, and our day jobs did not leave us with enough time to properly focus on it. After many intense days (and nights) of hacking, we were not able to come up with a working exploit (although we did collect a decent number of DoS scripts lol). After dealing with the frustration, I decided to take a break from hacking for a few months and dedicate my free time to resting and enjoying life. Of course, that did not happen and, instead, I somehow ended up diving into this massive research project.
 
-The thing is that I had changed my Internet provider a couple of months ago, so my new ISP had delivered a new router. Although I am obviously not going to refer to this ISP by its name because it probably won't never fix anything described in here, it is a medium sized one here in Spain that was gaining a lot of popularity at the moment due to offering good quality Internet at a low price. So, as always, I wanted to know what was inside this new router that would effectively act as the door to my home. No SSH nor telnet was available, so I opened my browser and navigated to the router's IP and, after authenticating with the credentials that the ISP guy told me when installing the router ("user:user", lol), I was able to access the admin interface:
+The thing is that I had changed my Internet provider a couple of months ago, so my new ISP had delivered a new router. Although I am obviously not going to refer to this ISP by its name because it probably won't never fix anything described in here, it is a medium sized one here in Spain that was gaining a lot of popularity at the moment due to offering good quality Internet at a low price. So, as always, I wanted to know what was inside this new router that would effectively act as the door to my home.
+
+The router was a Zyxel device, but I did not know the model yet. I noticed that it supported both SSH and telnet, so I connected using the credentials that the ISP guy gave me when installing the router ("user:user" lol) and was presented with a restricted shell:
+
+<code>$ ssh -oHostKeyAlgorithms=+ssh-dss -oPubkeyAcceptedAlgorithms=+ssh-dss user@192.168.1.1
+
+user@192.168.1.1's password:
+No entry for terminal type "xterm-256color";
+using dumb terminal settings.
+ZySH> ?
+cfg                       - DAL command line interface
+debug                     - &#60;N/A&#62;
+dns                       - ZYXEL command line
+dsllinestatus             - Show Econet DSL line status
+ethwanctl                 - ZYXEL command line
+exit                      - Close an active terminal session
+history                   - Display or clear CLI history
+ifconfig                  - Show network interface configuration
+ping                      - Send ICMP ECHO_REQUEST to network hosts
+pppoectl                  - ZYXEL command line
+sys                       - ZYXEL command line
+tcpdump                   - Text based packet capture utility
+traceroute                - monitor each routed node during whole routing path to &#60;host&#62;
+vcautohuntctl             - ZYXEL command line
+voicedbgcli               - ZYXEL command line
+wan                       - ZYXEL command line
+wlan                      - ZYXEL command line
+zycli                     - ZYXEL command line
+ZySH> sys atsh
+Firmware Version        : V5.50(ABVY.3.9)b2_G0
+Bootbase Version        : V1.44 | 10/15/2021 11:54:15
+Vendor Name             : Zyxel Communications Corp.
+Product Model           : EX3301-T0
+Serial Number           : [...]
+First MAC Address       : [...]
+Last MAC Address        : [...]
+MAC Address Quantity    : 16
+Default Country Code    : 00
+Boot Module Debug Flag  : 00
+Kernel Checksum         : BF1D51FF
+RootFS Checksum         : 729CFB55
+Romfile Checksum        : 0000FB24
+Main Feature Bits       : 00
+Other Feature Bits      :
+7f89c039: 0405050d 00000100 00000000 00000000
+7f89c049: 00000000 00000000 00000000
+ZySH></code>
+
+I was able to obtain some info of the device, such as the model name, which was "EX3301-T0". However, most commands did not work properly or needed admin privileges, and those that were available only allowed very basic configuration, so no direct access to the OS. Then, I opened my browser and navigated to the router web interace, in which I also logged in using the same "user" credentials:
 
 <img src="/assets/images/posts/2026-06-01/user_admin_panel.png" style="width: 40em">
 
-The top-right corner revealed the model of the router, a "Zyxel EX3301-T0". After navigating around, it quickly became obvious that this was not the "admin" interface, but a "regular user" interface, since it did not allow uploading a new firmware nor enabling SSH or any other protocol to access the device. Although this is a common practice in ISP routers, I still wanted to access the device. At this point, as any user that wants to access its router would do, I opened it to try finding a UART interface or something similar, which was easy enough since the UART port had some pins already set:
+After navigating around, it quickly became obvious that this was very restricted interface, since it did not allow uploading a new firmware nor enabling proper access over SSH or any other protocol. This is a common practice in ISP routers, so that users cannot modify the ISP cpnfiguration. At this point, as anyone who wants to access its router would do, I opened it to try finding a UART interface or something similar, which was easy enough since the UART port had some debug pins already set:
 
 <img src="/assets/images/posts/2026-06-01/pcb.png" style="width: 40em">
 
-Connecting to the UART interface revealed console output but no direct shell. By pressing any key, a login prompt appeared and introducing credentials "user:user" gave a restricted Zyxel shell:
+Connecting to the UART interface revealed console output but no direct shell. By pressing any key, a login prompt appeared and introducing the same "user" credentials again gave the same restricted shell as the SSH port:
 
 <code>EX3301-T0 Username: user
 Password: 
@@ -55,7 +103,7 @@ wlan                      - ZYXEL command line
 zycli                     - ZYXEL command line
 ZySH></code>
 
-However, most commands did nothing and none of them gave direct access to the OS. Regarding the bootloader, the device used a Zyxel proprietary one ("ZyXEL zloader v1.4.4"). It allowed stopping autoboot, but only exposed a very restricted shell in which no boot commands could be easily modified to later access the OS, as it is <a href="https://www.synacktiv.com/publications/i-hack-u-boot">sometimes possible with U-Boot</a>:
+Regarding the bootloader, the device used a Zyxel proprietary one ("ZyXEL zloader v1.4.4"). It allowed stopping autoboot, but only exposed a very restricted shell in which no boot commands could be easily modified to later access the OS, as it is <a href="https://www.synacktiv.com/publications/i-hack-u-boot">sometimes possible with U-Boot</a>:
 
 <code>ZyXEL zloader v1.4.4 (10/15/2021 - 11:54:15)
 Multiboot client version: 2.5
@@ -90,7 +138,7 @@ Further analysis revealed that authenticated HTTP requests had their bodies encr
 
 [ Breaking into the router ]
 
-However, as usual, I could not stop thinking about this, since an ISP router seemed a fairly easy target and was starting to damage my ego. So, I just created a folder in my vuln research directory and started diving a bit deeper into this. First thing first, I did a proper port scan, since I had not executed one because I was only taking a look earlier:
+However, as usual, I could not stop thinking about this, since an ISP router seemed a fairly easy target and was starting to damage my ego. So, I just created a new folder for this project in my vuln research directory and started diving deeper into this. First thing first, I did a proper port scan, since I had not executed one because I was only taking a look earlier:
 
 <code>$ nmap -sV -O -Pn -p- -oN nmap.log 192.168.1.1
 
@@ -109,5 +157,22 @@ PORT      STATE    SERVICE   VERSION
 49153/tcp open     unknown
 
 [...]</code>
+
+The ftp server allowed login as "user", but only allowed access to the "user" home folder, which was empty. Regarding the other ports, "zebra" corresponds to a deprecated routing protocol and ports 49152 and 49153 WiFi configuration UPnP services (remember these, since they will be heavily discussed later).
+
+So, given I had no way in, I decided to download the regular <a href="https://www.zyxel.com/global/en/support/download?model=ex3301-t0">firmware for "Zyxel EX3301-T0" routers from the vendor page</a> and compare it to my ISP router. This way, I could check if they were similar enough to try finding something in the default firmware that affected my router and could allow me in. I knew for sure that my ISP had modified it a bit, since some logos, colors and a lot of logs from the UART output confirmed it, but I believed that core functionalities should remain the same.
+
+I downloaded the firmware and extracted it using "binwalk", which easily gave me a squashfs filesystem:
+
+<code>$ binwalk V550ABVY6.2C0.bin
+
+DECIMAL       HEXADECIMAL     DESCRIPTION
+--------------------------------------------------------------------------------
+372           0x174           LZMA compressed data, properties: 0x6C, dictionary size: 8388608 bytes, uncompressed size: 16279488 bytes
+4180222       0x3FC8FE        Squashfs filesystem, little endian, version 4.0, compression:lzma, size: 26706310 bytes, 2393 inodes, blocksize: 262144 bytes, created: 2025-04-11 08:20:33</code>
+
+My main target were the UPnP ports that appeared in the nmap scan, since UPnP services tend to be straightforward and are easily reversed. After some initial analysis, I could not find any binaries that used those ports nor the schema advertised by the service, so I assumed it was an ISP thing and moved on.
+
+By then, I just wanted a way inside the router, so I did not care about the potential findings requiring authentication. Because of this, I targeted the web interface, since I already knew that there had been command injections in the past.
 
 {% endraw %}
