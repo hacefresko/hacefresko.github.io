@@ -161,7 +161,7 @@ PORT      STATE SERVICE     VERSION
 
 [...]</code>
 
-The ftp server allowed login as "user", but only granted access to the "/home/user", which was empty. Regarding the weirder ports, "zebra" corresponded to a deprecated routing protocol and ports 38400, 49152 and 49153 were UPnP services. After querying each of them and doing some research, I identified the following:
+The ftp server allowed login as "user", but only granted access to the "/home/user", which was empty. Regarding the weirder ports, "zebra" corresponded to a deprecated routing protocol and ports 38400, 49152 and 49153 were UPnP services. After interacting with each of these UPnP ports and doing some research, I identified the following:
 <ol><li>Port 38400: Service "InternetGatewayDevice", which uses a <a href="https://openconnectivity.org/developer/specifications/upnp-resources/upnp/internet-gateway-device-igd-v-2-0/">standardized OCF Device Control Protocol</a> that allows LAN clients to manage NAT port mappings, retrieve the external WAN IP and control firewall rules.</li>
 <li>Ports 49152/49153: Service "WFADevice", which uses a <a href="https://www.wi-fi.org/system/files/WFA_Device_1_0_Template_1_01_0.pdf">standardized Wi-Fi Alliance Device Control Protocol</a> that allows clients to configure 802.11 parameters (SSID, PSK, security settings) over an out-of-band IP channel using the WPS Simple Config protocol.</li></ol>
 However, none of these offered direct access to the OS.
@@ -177,7 +177,7 @@ DECIMAL       HEXADECIMAL     DESCRIPTION
 372           0x174           LZMA compressed data, properties: 0x6C, dictionary size: 8388608 bytes, uncompressed size: 16279488 bytes
 4180222       0x3FC8FE        Squashfs filesystem, little endian, version 4.0, compression:lzma, size: 26706310 bytes, 2393 inodes, blocksize: 262144 bytes, created: 2025-04-11 08:20:33</code>
 
-With the filesystem extracted, my main targets were the UPnP services that appeared in the nmap scan, since UPnP tends to be poorly secured and binaries implementing it are usually relatively straightforward to reverse. However, I could not find any binary that listened on port 38400 or implemented the "InternetGatewayDevice" service, so I assumed this was something added by the ISP. Regarding ports 49152 and 49153, the binary behind them was "/usr/bin/wscd", but I it only implemented 4 UPnP commands, of which only 3 accepted user input. Then, I found that all commands simply forwarded user input to kernel space using "ioctl", which seemed quite complicated at the moment (keep this in mind, as it will be relevant later).
+With the filesystem extracted, my main targets were the UPnP services that appeared in the nmap scan, since UPnP tends to be poorly secured and binaries implementing it are usually relatively straightforward to reverse. However, I could not find any binary that listened on port 38400 or implemented the "InternetGatewayDevice" service, so I assumed this was something added by the ISP. Regarding ports 49152 and 49153, corresponding to "WFADevice", the binary behind them was "/usr/bin/wscd", but I found that most commands simply forwarded user input to kernel space using "ioctl", which seemed quite complicated at the moment (keep this in mind, as it will be relevant later).
 
 By then, I just wanted a quick way inside the router, so I did not care about the potential findings requiring authentication, so I decided to take a look into the web interface, since I already knew that there had been command injections found there in the past.
 
@@ -283,9 +283,9 @@ This meant that a single request was not enough to inject a meaningful payload. 
 The command gets divided into the following separate commands:
 
 <code class="language-bash">iptables -t nat -A NAT_PORT_MAPPING_UPNP_1 -p tcp --source ;
-a=/tmp/a;                       # <-- NewRemoteHost
+a=/tmp/a;     # NewRemoteHost
 " --dport 1337 -j DNAT --to ";
-printf X>>$a;                   # <-- NewInternalClient
+printf X>>$a; # NewInternalClient
 :1337</code>
 
 Note that the quotes are intentionally injected as part of the exploit. Since the shell would otherwise stop executing after the first injected command, the closing quote from "NewRemoteHost" and the opening quote from "NewInternalClient" are used to keep the rest of the "iptables" command syntactically valid, ensuring all injected commands are executed. 
@@ -295,5 +295,60 @@ Once the full reverse shell command is assembled in "/tmp/a", a final request ex
 <img src="/assets/images/posts/2026-06-01/zupnp_poc.png" style="width: 40em">
 
 Again, this vulnerability was reported to Zyxel and assigned CVE-2025-13942. You can take a deeper look into the exploit and all affected devices <a href="https://github.com/hacefresko/CVEs/tree/main/CVE-2025-13942">at my github page</a>.
+
+
+[ Down the rabbit hole ]
+
+Great, I had discovered two command injections: one in the web interface, and one in the UPnP service. But now that I had gained a fairly good understanding of the device, I wanted to try finding something more complex, that would let me really explore exploitation development in the wild. Something like a stack overflow with binary protections or a complex UAF. Or maybe... something in the kernel. Remember those UPnP ports exposing the "WFADevice" service? They forwarded user input directly to the kernel via "ioctl". Also, this device ran a very old MIPS Linux kernel, which likely had few modern protections, so this seemed like a nice introduction to kernel exploitation if I could find something.
+
+So first, I opened again the "/usr/bin/wscd" binary and went back to reversing to dig deeper. As I already disccused earlier, it exposed the standardized "WFADevice" UPnP service, which allowed configuration of WiFi parameters over IP. Although the protocol it uses describes several commands, "wscd" only implemented 4 of them:
+
+- GetDeviceInfo
+- PutMessage
+- PutWLANResponse
+- SetSelectedRegistrar
+
+Command "GetDeviceInfo" didn't have parameters, since it only retrieved some WiFi related information. However, the other three commands did accept user input, and all of them ended up calling "wsc_set_oid", which sent that input straight into the kernel via "ioctl" using command "0x8BE1":
+
+<img src="/assets/images/posts/2026-06-01/wscd_ioctl.png" style="width: 40em">
+
+This command "0x8BE1" falls within the <a href="https://github.com/torvalds/linux/blob/master/include/uapi/linux/wireless.h#L328">Linux Wireless Extensions private range</a> (0x8BE0-0x8BFF), which means it bypasses the generic network stack entirely and is handled by the private handler of the corresponding network drivers. In this case, the WiFi chipset was from Mediatek, so the network drivers were made by Mediatek too, and they were compiled directly within the kernel. This all meant that, in order to follow the user input from there, I had to get my hands dirty and start reversing some kernel stuff.
+
+Next step then was to obtain the kernel image, which I extracted directly from the memory of the device: 
+
+<code># cat /proc/iomem
+00002000-0effffff : System RAM
+  00002000-0080734b : Kernel code
+  0080734c-00eae63f : Kernel data
+1fb90000-1fb9ffff : xhci-hcd
+20000000-2fffffff : pcie memory space
+  20000000-201fffff : PCI Bus 0000:01
+    20000000-200fffff : 0000:01:00.0
+      20000000-200fffff : 0000:01:00.0
+    20100000-20103fff : 0000:01:00.0
+      20100000-20103fff : 0000:01:00.0
+    20104000-20104fff : 0000:01:00.0
+      20104000-20104fff : 0000:01:00.0
+  20200000-203fffff : PCI Bus 0000:02
+    20200000-202fffff : 0000:02:00.0
+      20200000-202fffff : 0000:02:00.0
+    20300000-20303fff : 0000:02:00.0
+      20300000-20303fff : 0000:02:00.0
+    20304000-20304fff : 0000:02:00.0
+      20304000-20304fff : 0000:02:00.0
+# dd if=/dev/mem of=/tmp/kernel_code_data.bin bs=1 skip=8192 count=15386176
+15386176+0 records in
+15386176+0 records out
+15386176 bytes (14.7MB) copied, 123.994837 seconds, 121.2KB/s
+#</code>
+
+Then, I loaded it on Ghidra and set the corresponding memory base address, which was "0x80002000". Since analyzing the whole kernel would take ages, I obtained the "/proc/kallsyms" file from the device, which holds kernel exported symbol definitions and their addresses, and imported them to Ghidra using a very quick vibe coded script. With that, I had already over 25000 kernel functions located:
+
+<img src="/assets/images/posts/2026-06-01/kernel_functions.png" style="width: 35em">
+
+With Claude's help, I found that the function that handled "ioctl" messages with command "0x8BE1" was "rt28xx_ap_ioctl", which is a very consistent name for a Mediatek driver function considering the existence of Mediatek "RT28" models. This function then ends up calling different other functions depending on which "WFADevice" command was called. In the case of the "SetSelectedRegistrar" command, the function that is ultimately executed is "WscSelectedRegistrar".
+
+
+ 
 
 {% endraw %}
