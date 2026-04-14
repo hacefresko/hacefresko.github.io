@@ -260,7 +260,7 @@ The UPnP 'InternetGatewayDevice' allowed interacting with several UPnP services 
 
 <img src="/assets/images/posts/2026-06-01/zupnp_snprintf.png" style="width: 40em">
 
-It was obviously another command injection, this time in an unauthenticated service. Exploitation was a little bit, though. The parameters susceptible to injection, 'NewRemoteHost' and 'NewInternalClient', were copied into 15-byte buffers before being inserted into the command string, limiting each of them to 15 characters:
+It was obviously another command injection, this time in an unauthenticated service. Exploitation was a little bit trickier, though. The parameters susceptible to injection, 'NewRemoteHost' and 'NewInternalClient', were copied into 15-byte buffers before being inserted into the command string, limiting each of them to 15 characters:
 
 <img src="/assets/images/posts/2026-06-01/zupnp_strncpy.png" style="width: 40em">
 
@@ -418,7 +418,7 @@ That felt incredible. However, it was my first time dealing with a kernel crash,
 
 ----[ Intro to kernel exploitation ]------------------
 
-At this point, I started doing a lot of research into Linux kernel exploitation, specially in embedded and Mediatek devices. Out of all the resources I found, I must reference the following two, since they were the most helpful ones (and the most similar cases):
+Before I could do anything useful with this kernel crash, I needed to understand what was actually happening under the hood. I had never done kernel exploitation before, so I spent a good amount of time studying the topic, especially for embedded and Mediatek devices. Out of all the resources I found, I must reference the following two, since they were the most helpful ones (and the most similar cases):
 
 - <a href="https://www.youtube.com/watch?v=qT3YFtGjiuQ">HEXACON 2025 - Arise from the Wireless: Breaking the Security Barrier in Wi-Fi by Xiaobye</a>
 - <a href="https://blog.coffinsec.com/0days/2025/12/15/more-like-mediarekt-amirite.html">hyprblog - mediatek? more like media-rekt, amirite.</a>
@@ -432,9 +432,11 @@ Jokes aside, after crashing the device for hours, I obtained a lot of informatio
 
 ----[ Freelist hijacking ]----------------------------
 
-Some research later, I ended up going down a very different route, which was freelist hijacking, a technique that targets allocator internal structures rather than trying to corrupt adjacent objects directly. I learned this technique from the Hexacon 2025 talk I referenced earlier, where Xiaobye uses it to achieve remote code execution with a very similar Mediatek vulnerability. However, in order to understand freelist hijacking, let's first review some kernel allocator concepts.
+Some research later, I ended up going down a very different route, which was freelist hijacking. This technique targets allocator metadata stored within free adjacent objects, rather than trying to corrupt the contents of adjacent objects themselves. I learned this technique from the Hexacon 2025 talk I referenced earlier, where Xiaobye uses it to achieve remote code execution with a very similar Mediatek vulnerability. 
 
-Inside the Linux kernel, heap memory is managed using the slab allocator (usually SLUB). It works by pre-allocating large regions of memory called slabs, each of which is divided into fixed-size objects. Same sized objects are grouped into caches, such as 'kmalloc-128' or 'kmalloc-256', which hold allocations of up to 128 bytes and 256 bytes respectively. There are also dedicated caches for frequently allocated kernel structures like network sockets. These caches can be inspected via '/proc/slabinfo':
+But first, we need to go over some kernel allocator concepts. In my case, neither 'CONFIG_SLAB_FREELIST_RANDOM' nor 'CONFIG_SLAB_FREELIST_HARDENED' were enabled, which are kernel protections related to the freelist. As such, the following explanations do not take these protections into account.
+
+Inside the Linux kernel, heap memory is managed using the slab allocator (SLUB in modern kernels). It works by pre-allocating large regions of memory called slabs, each of which is divided into fixed-size objects. Same sized objects are grouped into caches, such as 'kmalloc-128' or 'kmalloc-256', which hold allocations of up to 128 bytes and 256 bytes respectively. There are also dedicated caches for frequently allocated kernel structures like network sockets. These caches can be inspected via '/proc/slabinfo':
 
 <code># cat /proc/slabinfo
 
@@ -454,13 +456,13 @@ kmalloc-128        12878  13088    128   32    1 : tunables    0    0    0 : sla
 [...]
 </code>
 
-To track which objects are available, the allocator maintains a freelist, which is essentially a linked list chaining all free objects together. Each free object stores a pointer at its start that points to the next free object in the same cache. When a new allocation is requested, the allocator pops the head of the freelist and returns that object. When an object is freed, it is pushed back onto the freelist.
+To track which objects are available, the allocator maintains a freelist for each cache, which is essentially a linked list chaining all free objects together. Each free object stores a pointer at its start that points to the next free object in the same cache. When a new allocation is requested, the allocator pops the head of the freelist and returns that object. When an object is freed, it is pushed back onto the freelist.
 
-Now, freelist hijacking consists of corrupting the freelist pointer that sits at the start of a free object in the slab cache, redirecting the next allocation to an arbitrary location. In this case, this could be achieved using the previously identified heap overflow to overwrite the adjacent object freelist pointer. If this adjacent object is free, the freelist gets corrupted and points to an arbitrary location, allowing the attacker to control where the new allocation will land. If any predictable data is written into that newly allocated object, this provides an arbitrary write primitive.
+Now, freelist hijacking consists of corrupting the freelist pointer stored at the start of a free object, pointing it to an attacker-controlled address. From that point, the next allocation on the same cache consumes the corrupted object normally, but the one after lands at that arbitrary address. If anything predictable is written into that second allocation, this translates into an arbitrary write primitive.
 
-In this case, the heap overflow happened in 'kmalloc-128' (the smallest general use cache in my system). It would be impossible to target any bigger slab cache, since the maximum size of sub-items inside TLVs was 255 and that is not enough to corrupt adjacent objects in bigger caches, such as in 'kmalloc-256'. Also, it is also important to note that neither 'CONFIG_SLAB_FREELIST_RANDOM' not 'CONFIG_SLAB_FREELIST_HARDENED' were enabled, which are some kernel protections related to the freelist, so exploitation was easier. 
+In this case, the heap overflow happened in 'kmalloc-128' (the smallest general use cache in my target). Targeting a larger cache was impossible, since the maximum size of sub-items inside TLVs was 255, which was not enough to overflow into adjacent objects in bigger caches, such as in 'kmalloc-256'.
 
-So, let's suppose that this is the state of objects in the cache and the freelist before the overflow:
+So, let's suppose that this was the state of objects in the cache and the freelist before the overflow:
 
 <code>kmalloc-128 cache:
 
@@ -471,7 +473,7 @@ kmalloc-128 freelist:
 
 <span class="token punctuation">[free_1]</span>-&#62;<span class="token punctuation">[free_2]</span>-&#62;<span class="token punctuation">[free_3]</span>-&#62;<span class="token punctuation">[free_4]</span></code>
 
-After allocating the TLV buffer for the first 0x1049 TLV and then copying the second 0x1049 TLV that produced the overflow, the state of the cache should now look something like this:
+After allocating the TLV buffer for the first '0x1049' TLV and then copying the second '0x1049' TLV that produced the overflow, the state of the cache should now look something like this:
 
 <code>kmalloc-128 cache:
 
@@ -479,21 +481,21 @@ After allocating the TLV buffer for the first 0x1049 TLV and then copying the se
                       ^^^^^^^^^^^^^^^^^^^^
                         attacker payload</span></code>
 
-Since 'free_2' has been corrupted, its freelist pointer no longer points to 'free_3', but wherever the attacker payload makes it point to:
+Since 'free_2' has been corrupted, its freelist pointer no longer points to 'free_3', but wherever the attacker payload makes it point to ('arbitrary_location'):
 
 <code>kmalloc-128 freelist:
 
 <span class="token regex">[free_2]</span>-&#62;<span class="token string">[arbitrary_location]</span>-&#62;<span class="token punctuation">[????]</span></code>
 
-Now, the next object allocated into 'kmalloc-128' will land regularly on the corrupted 'free_2'. However, the second object to be allocated into 'kmalloc-128' will then land on 'arbitrary_location', which is controlled by the attacker.
+Now, the next object allocated into 'kmalloc-128' will land regularly on the corrupted object 'free_2'. However, the second object to be allocated into 'kmalloc-128' after the overflow will then land on 'arbitrary_location', which is controlled by the attacker.
 
-Lastly, 'arbitrary_location' must contain a pointer to a valid freelist object or null (end of the freelist). Else, the next allocation on 'kmalloc-128' would immediately crash the kernel trying to follow the next entry on the freelist, rendering the exploit useless. Since finding a useful location which also contains a pointer to a valid freelist object results nearly impossible, it is easier to just use an 'arbitrary_location' that contains null, so that the freelist after the hijack looks something like this and execution can continue:
+Lastly, 'arbitrary_location' must contain a valid freelist pointer or null (end of the freelist). Otherwise, the kernel would immediately crash trying to follow whatever bytes are there as a pointer on the next 'kmalloc-128' allocation, rendering the exploit useless. Since finding a useful write target that also happens to contain a valid freelist pointer results nearly impossible, the practical approach is to pick an 'arbitrary_location' that contains null, so the freelist terminates cleanly after the hijacked allocation:
 
 <code>kmalloc-128 freelist:
 
 <span class="token regex">[free_2]</span>-&#62;<span class="token string">[arbitrary_location]</span>-&#62;<span class="token punctuation">[null]<span></code>
 
-With this approach in mind, I needed to find a suitable allocation after the overflow that would allow writing attacker-controlled data into 'arbitrary_location'. This proved to be the most challenging stage of the exploitation, as debugging dark-magic heap corruptions using only kernel panic messages and limited resources was extremely tedious. Too many hours later, I sort of found my target.
+With this approach in mind, I needed to find a suitable allocation after the overflow that would allow writing attacker-controlled data into 'arbitrary_location'. This proved to be the most challenging stage of the exploitation, as debugging dark-magic crashes using only kernel panic messages and limited resources was extremely tedious. After many painful hours, I sort of found my target.
 
 After the overflow happens, the driver continues processing the extracted sub-item as follows:
 
@@ -521,23 +523,23 @@ After the overflow happens, the driver continues processing the extracted sub-it
 
     // ...
     
-    // sub-item is copied into buf
+    // moves sub-item into buf
     WscAppendV2SubItem(1, sub_item, sub_item_len, buf, ...);
 
     // ...
 }</code>
 
-If a 0x1041 TLV with value 1 is present within the WPS packet, function 'WscGenV2Msg' is ultimately called. It first allocates 128 bytes for 'buf', which land in 'kmalloc-128', and then calls 'WscAppendV2SubItem', which copies the sub-item into 'buf'. This seemed like the perfect target for the exploit, since it would write controlled data to wherever the allocation landed. However, there was a critical ordering issue: the allocation of 'buf' was the first 'kmalloc-128' allocation after the overflow, not the second one. This meant it would land on the corrupted object itself, not at 'arbitrary_location'. For the freelist hijacking to work, I needed the second allocation to be the one that wrote attacker-controlled data.
+If a '0x1041' TLV with value 1 is present within the WPS packet, 'WscGenV2Msg' is ultimately called. It first allocates 128 bytes for 'buf', which land in 'kmalloc-128', and then calls 'WscAppendV2SubItem', which copies the sub-item into 'buf'. This seemed like the perfect target for the exploit, since it would write controlled data to wherever the allocation landed. However, there was a critical ordering issue: the allocation of 'buf' in 'WscGenV2Msg' was the first 'kmalloc-128' allocation after the overflow, not the second one. This meant that it would land on the corrupted object itself ('free_2'), not at 'arbitrary_location'. For the freelist hijacking to work, I needed something to consume the corrupted object 'free_2' first, so that 'WscGenV2Msg' would be the second allocation and land at 'arbitrary_location'.
 
 I reviewed the code trying to find any way to trigger an additional 'kmalloc-128' allocation between the overflow and 'WscGenV2Msg', but there was none. The execution flow was deterministic with no controllable branches that would add allocations. However, the answer wasn't in the code itself.
 
-The solution I ended up choosing was originally suggested by Claude, and consisted on exploiting the fact that the kernel somehow processes these WPS 'ioctl' messages concurrently. By sending multiple requests simultaneously, there was a chance that a 'kmalloc-128' allocation from a parallel thread could slip in between the overflow and the 'WscGenV2Msg' call. If the timing worked out, the concurrent thread's allocation would consume the corrupted freelist entry, making the 'WscGenV2Msg' allocation to land at 'arbitrary_location' and copying the sub-item there.
+The solution I ended up choosing was originally suggested by Claude, and consisted of exploiting the fact that the kernel processes these WPS 'ioctl' messages concurrently. By sending multiple requests simultaneously, there was a chance that a 'kmalloc-128' allocation from a parallel thread could slip in between the overflow and the 'WscGenV2Msg' call. If the timing worked out, the concurrent thread's allocation would consume the corrupted object ('free_2'), leaving 'WscGenV2Msg's allocation to land at 'arbitrary_location' and write the sub-item contents there.
 
 So, I crafted a PoC that exploited this race condition by sending multiple WPS messages. Each message contained the following three TLVs:
 <ol><li>TLV 0x1041 (value 1): Triggers the code path that leads to 'WscGenV2Msg' allocation</li>
 <li>TLV 0x1049 (20 bytes): Creates the initial 'sub_item' buffer in 'kmalloc-128'</li>
 <li>TLV 0x1049 (132 bytes): Overflows 'sub_item' and corrupts the adjacent heap object by 4 bytes, overwriting its freelist pointer with 'WRITE_ADDR'</li></ol>
-In this case, I choose a 'WRITE_ADDR' for testing purposes which was full of 00s, so that the freelist would still be valid and the kernel could continue execution:
+For testing, I chose a 'WRITE_ADDR' filled with null bytes, so the freelist would remain valid and the kernel could continue running after the exploit:
 
 <code class="language-python">WRITE_ADDR = 0x80ea0000
 
@@ -548,7 +550,7 @@ wps_payload += build_tlv(0x1049, b"\x00\x00\x00" + b"\x01\x84" + b"A" * 128 + st
 The PoC succeeded when the following conditions were met:
 <ol><li>The object next to the 'sub_item' buffer was free, so that its freelist pointer could be corrupted with 'WRITE_ADDR'</li>
 <li>Any concurrent thread performed an allocation into 'kmalloc-128' just between the overflow and the 'WscGenV2Msg' allocation, so that the last one landed on 'WRITE_ADDR'</li></ol>
-When successful, 'WscGenV2Msg' wrote an 8-byte WPS header plus 128 bytes of data from the second 0x1049 TLV into 'WRITE_ADDR', successfully providing an arbitrary write primitive!
+When successful, 'WscGenV2Msg' wrote 128 bytes of attacker-controlled data from the second '0x1049' TLV into 'WRITE_ADDR', preceded by an 8-byte fixed WPS header that 'WscGenV2Msg' always prepends automatically:
 
 <img src="/assets/images/posts/2026-06-01/arbitrary_write.png" style="width: 40em">
 
@@ -600,13 +602,13 @@ Call Trace:
 Code: 8c430000  3063c000  2c630001 &#60;00030336&#62; 8c430000  7c630380  10600002  00002821  8c450038
 ---[ end trace 244decf0ed7df338 ]---</code>
 
-However, although a kernel crash was produced, the device did not reboot. Some network services died, such as 'wscd' itself or the HTTP server, but others such as SSH would still work (that is why I could verify with 'hexdump' that the arbitrary write had been successful).
+Note that although a crash was produced, the device did not reboot. Some network services died, such as 'wscd' itself or the HTTP server, but others such as SSH stayed up, which is how I verified with 'hexdump' that the arbitrary write had landed correctly.
 
-When an attempt failed because the adjacent heap object wasn't free, the device usually crashed and rebooted (there was a small amount of times in which it froze indefinitely). However, if the adjacent object was free but no concurrent allocation happened between the overflow and 'WscGenV2Msg', then the next 'kmalloc-128' allocation at 'WscAppendV2SubItem' would always land on 'WRITE_ADDR', which wrote only bytes '00 01 20 00':
+When an attempt failed because the adjacent heap object wasn't free, the device usually crashed and rebooted. However, if the adjacent object was free but no concurrent allocation happened between the overflow and 'WscGenV2Msg', then 'WscGenV2Msg' consumed the corrupted object itself, and the next 'kmalloc-128' allocation landed on 'WRITE_ADDR' instead. This next allocation happen to be inside 'WscAppendV2SubItem' which always wrote bytes '00 01 20 00' into 'WRITE_ADDR':
 
 <img src="/assets/images/posts/2026-06-01/failed_arbitrary_write.png" style="width: 40em">
 
-This PoC was not reliable at all and often took many attempts for it to be successful. However, given the remote nature of the bug and that it was my first time dealing with kernel exploitation, I was quite happy with these results. So, next step was using this remote kernel arbitrary write to achieve some code execution :D
+This PoC was not particularly reliable and often took many attempts to succeed. However, given the remote nature of the bug and that it was my first time dealing with kernel exploitation, I was quite happy with these results. So, next step was using this remote kernel arbitrary write to achieve some code execution :D
 
 
 ----[ Achieving code execution ]----------------------
@@ -766,8 +768,7 @@ payload = (
 
 As a summary, this is the diagram that represents the steps that should happen at a high level on a successful exploitation attempt:
 
-<code>
-                   +------------------------------------------------------------------------------+
+<code>                   +------------------------------------------------------------------------------+
                    | device           +---------------------------------------------------------+ |
                    |                  | kernel                                                  | |
                    |  +----------+    | +-----------------------------------------------------+ | |
@@ -780,6 +781,7 @@ As a summary, this is the diagram that represents the steps that should happen a
 |          |       |  |          |    | |              |                          |           | | |
 |          |       |  |          |    | |              v                          v           | | |
 |          |       |  |          |    | |    4.[freelist hijacking]     10.[arbitrary write]  | | |
+|          |       |  |          |    | |                                         |           | | |
 |          |       |  |          |    | |                                         |           | | |
 |          |  5.   |  |          | 6. | |                                         |           | | |
 |          |--------->| ioctl() ------------> WscSelectedRegistrar()              |           | | |
@@ -806,21 +808,21 @@ As a summary, this is the diagram that represents the steps that should happen a
 <li>Function 'WscSelectedRegistrar' processes the payload, which produces a heap overflow in 'kmalloc-128'.</li>
 <li>If the adjacent object in 'kmalloc-128' is free, its freelist pointer is overwritten. Freelist is now corrupted and the last node points to '0x8084f864'.</li>
 <li>While this happens, the attacker sends another 'SetSelectedRegistrar' command.</li>
-<li>The second payload ultimately reaches 'WscSelectedRegistrar' on the Mediatek kernel driver.</li>
+<li>Second payload reaches 'WscSelectedRegistrar' concurrently.</li>
 <li>Function 'WscSelectedRegistrar' allocates a buffer for the second payload in 'kmalloc-128', freelist is updated and the next node points to '0x8084f864'.</li>
 <li>Processing of the first payload continues and 'WscGenV2Msg' is called.</li>
 <li>Function 'WscGenV2Msg' allocates a buffer in 'kmalloc-128', which lands on '0x8084f864'.</li>
 <li>Function 'WscGenV2Msg' writes 8 bytes of fixed data + the contents of the payload into the buffer, which is at '0x8084f864', overwriting 'udp_rcv' and 'tcp_v4_rcv' function pointers.</li>
 <li>Eventually, either 'udp_rcv' or 'tcp_v4_rcv' are called and execution is redirected to attacker shellcode.</li>
 <li>Shellcode executes a command asynchronously that modifies the root password on the persistent configuration of the device.</li></ol>
-I executed the exploit and, after some waiting, it finally happend. I successfully exploited the unauthenticated remote kernel heap overflow and modified root password of the device permanently!
+I executed the exploit and, after some waiting, it finally happened. I successfully exploited the unauthenticated remote kernel heap overflow and modified the root password of the device permanently!
 
 <img src="/assets/images/posts/2026-06-01/kernel_rce.png" style="width: 40em">
 
 I reported this vulnerability to Mediatek and it was assigned CVE-2026-20452. Again, you can take a look into the exploit at my <a href="https://github.com/hacefresko/CVEs/tree/main/CVE-2026-20452">at my github page</a>.
 
 
-----[ Conclussions ]----------------------------------
+----[ Conclusions ]----------------------------------
 
 
 
