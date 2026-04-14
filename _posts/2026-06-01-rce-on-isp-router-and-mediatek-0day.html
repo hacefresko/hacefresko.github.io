@@ -8,24 +8,28 @@ header:
   teaser: /assets/images/posts/2026-06-01/teaser.png
 ---
 
-{% raw %}Hi there! In this blog post, I will be discussing how I broke into my ISP router by using a command injection, then found another even better command injection inside, and how I ended up finding and exploiting a remote heap overflow in the kernel driver of its Mediatek chip. These vulnerabilities have been disclosed over the past months and have been assigned the following CVEs:
+{% raw %}Hi there! In this blog post, I will walk through how I went from poking around with my ISP router to achieving kernel-level unauthenticated remote code execution using a Mediatek 0day. The vulnerabilities involved in this research have been disclosed over the past months and assigned the following CVEs:
 
   - CVE-2025-13942: Zyxel unauthenticated command injection in UPnP daemon
   - CVE-2025-13943: Zyxel authenticated command injection in log export CGI
   - CVE-2026-20452: Mediatek MTXXX WPS heap overflow
 
-As usual, this research is heavily based on reverse engineering and a fair amount of trial and error, so excuse me if there are any mistakes, specially in low level kernel stuff, since this is a very complex topic. If you find something that is awfully wrong and want to help me correct it, I am absolutely open to it. Anyways, let's start with the blog, since there is a lot to cover.
+As usual, this research is heavily based on reverse engineering and a fair amount of trial and error, so please excuse any mistakes, especially in low-level kernel stuff, as this is a very complex topic. If you find something that is awfully wrong and want to help me correct it, I am absolutely open to it.
+
+Also, take into account that, to prevent this post from being twice as long, I have omitted A LOT of rabbit holes. This has been the most advanced research I have ever conducted and, as such, it has been full of failures and dead ends. Huge thanks to the community and all the amazing colleagues who supported me along the way :').
 
 <img src="/assets/images/posts/2026-06-01/header.png" style="width: 30em">
 
 
 ----[ Some context ]----------------------------------
 
-This journey begins in late summer 2025, when my colleague <a href="https://x.com/s3rg0x">Sergio</a> and I decided to give <a href="https://www.zerodayinitiative.com/Pwn2OwnIreland2025Rules.html">Pwn2Own Ireland 2025</a> a shot, targeting a couple of embedded devices. However, we underestimated the tight timeframe of the competition, and our day jobs did not leave us with enough time to properly focus on it. After many intense days (and nights) of hacking, we were not able to come up with a working exploit (although we did collect a decent number of DoS scripts lol). After dealing with the frustration, I decided to take a break from hacking for a few months and dedicate my free time to resting and enjoying life. Of course, that did not happen and, instead, I somehow ended up diving into this massive research project.
+This journey begins in late summer 2025, when my colleague <a href="https://x.com/s3rg0x">Sergio</a> and I decided to give <a href="https://www.zerodayinitiative.com/Pwn2OwnIreland2025Rules.html">Pwn2Own Ireland 2025</a> a shot, targeting a couple of embedded devices. However, we underestimated the tight timeframe of the competition, and our day jobs did not leave us with enough time to properly focus on it.
 
-The thing is that I had changed my Internet provider a couple of months ago, so my new ISP had delivered a new router. Although I am obviously not going to refer to this ISP by its name because it probably won't ever fix anything described in here, it is a medium sized one here in Spain that was gaining a lot of popularity at the moment due to offering good quality Internet at a low price. So, as always, I wanted to know what was inside this new router that would effectively act as the door to my home.
+After many intense days (and nights) of hacking, we were not able to come up with a working exploit (although we did collect a decent number of DoS scripts lol). After dealing with the frustration, I decided to take a break from hacking for a few months and dedicate my free time to resting and enjoying life. Of course, that did not happen and, instead, I somehow ended up diving into this massive research.
 
-The router was a Zyxel device, but I did not know the model yet. I noticed that it supported both SSH and telnet, so I connected using the credentials that the ISP guy gave me when installing the router ('user:user') and was presented with a restricted Zyxel shell:
+The thing is that a few months earlier I had switched ISPs, which meant getting a new router. Although I am obviously not going to refer to this ISP by its name because it probably won't ever fix anything described in here, it is a medium sized one here in Spain that was gaining a lot of popularity at the moment due to offering good quality Internet at a low price. So, as always, I wanted to know what was inside this new router that would effectively act as the door to my home.
+
+The router was a Zyxel device, although I did not know the model yet. I noticed that it supported both SSH and telnet, so I connected using the credentials provided by the ISP technician ("user:user") and was presented with a restricted Zyxel shell:
 
 <code>$ ssh -oHostKeyAlgorithms=+ssh-dss -oPubkeyAcceptedAlgorithms=+ssh-dss user@192.168.1.1
 
@@ -71,40 +75,21 @@ Other Feature Bits      :
 7f89c049: 00000000 00000000 00000000
 ZySH></code>
 
-I was able to obtain some info of the device, such as the model name, which was EX3301-T0. However, most commands did not work properly or needed admin privileges, and those that were available only allowed very basic configuration, so no direct access to the OS. Then, I opened my browser and navigated to the router web interface, in which I also logged in using the same 'user' credentials:
+I was able to obtain some info of the device, such as the model name, which was EX3301-T0. However, most commands did not work properly or required admin privileges, and those that were available only allowed very basic configuration, so no direct access to the OS.
+
+I then opened the web interface and logged in with the same credentials:
 
 <img src="/assets/images/posts/2026-06-01/user_admin_panel.png" style="width: 40em">
 
-After navigating around, it quickly became obvious that this was a very restricted interface too, since it did not allow uploading a new firmware nor enabling proper access over SSH nor any other protocol. This is a common practice in ISP routers, so that users cannot modify the ISP configuration. At this point, as anyone who wants to access its router would do, I opened it to try finding a UART interface or something similar, which was easy enough since the UART port had debug pins already attached:
+After navigating around, it became clear that this was a very restricted interface too. It did not allow uploading firmware nor enabling proper access over SSH nor any other protocol. This is common in ISP routers to prevent users from modifyng the ISP configuration.
+
+At this point, as anyone who wants to access its router would do, I opened it to try finding a UART interface or something similar, which was easy enough since the UART port had debug pins already attached:
 
 <img src="/assets/images/posts/2026-06-01/pcb.png" style="width: 35em">
 
-Connecting to the UART interface revealed console output and the same restricted shell as in SSH:
+Connecting to it only revealed console output and the same restricted shell as over SSH, with no additional privileges.
 
-<code>EX3301-T0 Username: user
-Password: 
-ZySH> ?
-cfg                       - DAL command line interface
-debug                     - &#60;N/A&#62;
-dns                       - ZYXEL command line
-dsllinestatus             - Show Econet DSL line status
-ethwanctl                 - ZYXEL command line
-exit                      - Close an active terminal session
-history                   - Display or clear CLI history
-ifconfig                  - Show network interface configuration
-ping                      - Send ICMP ECHO_REQUEST to network hosts
-pppoectl                  - ZYXEL command line
-sys                       - ZYXEL command line
-tcpdump                   - Text based packet capture utility
-traceroute                - monitor each routed node during whole routing path to &#60;host&#62;
-vcautohuntctl             - ZYXEL command line
-voicedbgcli               - ZYXEL command line
-wan                       - ZYXEL command line
-wlan                      - ZYXEL command line
-zycli                     - ZYXEL command line
-ZySH></code>
-
-Regarding the bootloader, the device used a Zyxel proprietary one ('ZyXEL zloader v1.4.4'). It allowed stopping autoboot, but only exposed another Zyxel restricted shell in which no boot commands could be easily modified to later access the OS, as it is <a href="https://www.synacktiv.com/publications/i-hack-u-boot">sometimes possible with U-Boot</a>:
+The bootloader was also proprietary ('ZyXEL zloader v1.4.4'). It allowed interrupting the boot process, but only exposed another restricted shell with no obvious way to modify boot parameters (as it is <a href="https://www.synacktiv.com/publications/i-hack-u-boot">sometimes possible with U-Boot</a>):
 
 <code>ZyXEL zloader v1.4.4 (10/15/2021 - 11:54:15)
 Multiboot client version: 2.5
@@ -130,11 +115,11 @@ ZHAL></code>
 
 In short, no easy access to the device :(
   
-Then, I started looking around on the Internet to check if people had found an easy way in that did not require too much effort. I ended up finding an article, which I won't be sharing because it explicitly names the ISP, that described a way of extracting the admin password from the web interface. It basically exploited an authenticated command injection in the dynamic DNS configuration page. I tried this technique, but nothing seemed to happen. Also, when introducing special characters in other forms to check if there was any other easy command injections, an error message appeared ("It is not possible to write special characters") and no request was sent:
+I then searched online to see if anyone had already found an easy way in. I found an article (which I won't share because it explicitly names the ISP) describing a method to extract the admin password from the web interface via an authenticated command injection in the dynamic DNS configuration page. I tried to reproduce it, but nothing happened. Additionally, special characters in other forms were blocked by the interface itself, which returned an error ("It is not possible to write special characters") and prevented the request from being sent:
 
 <img src="/assets/images/posts/2026-06-01/no_special_chars.png" style="width: 25em">
 
-Further analysis revealed that authenticated HTTP requests had their bodies encrypted, which was enough to keep me away for the moment. I stopped there and did not continue further.
+Further analysis revealed that authenticated HTTP requests had their bodies encrypted, which was enough to keep me away for the moment. I stopped there and did not continue any further.
 
 
 ----[ Breaking into the router ]----------------------
@@ -162,14 +147,16 @@ PORT      STATE SERVICE     VERSION
 
 [...]</code>
 
-The FTP server allowed login as 'user', but only granted access to '/home/user', which was empty. As for 'zebra', it is a known daemon from the Quagga routing suite used for routing management. The more unusual ports, 38400, 49152 and 49153, were associated with the following UPnP devices:
+The FTP server allowed login as 'user', but only granted access to '/home/user', which was empty. None of the other identified services were any useful either.
+
+The more unusual ports, 38400, 49152 and 49153, were associated with the following UPnP devices:
 <ol><li>Port 38400 - 'InternetGatewayDevice': Allows LAN clients to perform NAT operations, such as adding port mappings or controlling firewall rules, using the <a href="https://openconnectivity.org/developer/specifications/upnp-resources/upnp/internet-gateway-device-igd-v-2-0/">OCF Device Control Protocol</a>.</li>
 <li>Ports 49152/49153 - 'WFADevice': Allows clients to configure 802.11 parameters (SSID, PSK, security settings) over IP using WPS using the <a href="https://www.wi-fi.org/system/files/WFA_Device_1_0_Template_1_01_0.pdf">Wi-Fi Alliance Device Control Protocol</a>.</li></ol>
 However, none of these offered direct access to the OS.
 
-So, given I had no clear way in, I decided to download the regular <a href="https://www.zyxel.com/global/en/support/download?model=ex3301-t0">firmware for Zyxel EX3301-T0 routers from the vendor page</a> and compare it to my ISP router. This way, I could check if they were similar enough to find something in the default firmware that also affected my device. I knew for sure that my ISP had modified it a bit, since some logos, colors and a lot of logs from the UART output confirmed it, but I believed core functionalities would remain the same.
+Since I had no clear way in, I downloaded the regular <a href="https://www.zyxel.com/global/en/support/download?model=ex3301-t0">firmware for Zyxel EX3301-T0 routers from the vendor page</a> to compare it with the one in my router. Although the ISP would have probably modified it a bit, I believed core functionalities would remain the same, so the goal was to find something in the stock firmware that would also affect my device.
 
-I extracted the firmware using 'binwalk', which gave me a squashfs filesystem:
+I extracted it using 'binwalk' and obtained a 'squashfs' filesystem:
 
 <code>$ binwalk V550ABVY6.2C0.bin
 
@@ -178,11 +165,11 @@ DECIMAL       HEXADECIMAL     DESCRIPTION
 372           0x174           LZMA compressed data, properties: 0x6C, dictionary size: 8388608 bytes, uncompressed size: 16279488 bytes
 4180222       0x3FC8FE        Squashfs filesystem, little endian, version 4.0, compression:lzma, size: 26706310 bytes, 2393 inodes, blocksize: 262144 bytes, created: 2025-04-11 08:20:33</code>
 
-With the filesystem extracted, my main targets were the UPnP services that appeared in the nmap scan, since UPnP tends to be poorly secured and binaries implementing it are usually relatively straightforward to reverse. However, I could not find any binary that listened on port 38400 or implemented the 'InternetGatewayDevice', so I assumed this was something added by the ISP. Regarding ports 49152 and 49153, corresponding to the 'WFADevice', the binary behind them was '/usr/bin/wscd'. However, I found that most available commands simply forwarded user input to kernel space using 'ioctl', which seemed quite complicated at the moment (keep this in mind, as it will be relevant later).
+With the filesystem extracted, I focused on the UPnP services identified in the scan, as they are often poorly secured and their binaries are usually easy to reverse using strings. However, I could not find any binary listening on port 38400 or implementing the 'InternetGatewayDevice', so I assumed this was something added by the ISP. Ports 49152 and 49153 ('WFADevice') were handled by '/usr/bin/wscd', but most commands were forwarded directly to the kernel via 'ioctl', which seemed too complicated at that point (keep this in mind, as it will be relevant later).
 
-By then, I just wanted a quick way inside the router, so I did not care about the potential findings requiring authentication, so I decided to take a look into the web interface, since I already knew that there had been command injections found there in the past.
+By then, I just wanted a quick way inside the router and did not care about the potential findings requiring authentication. So I decided to take a look into the web interface, since there had already been command injections there in the past.
 
-I quickly found the executable '/bin/zhttpd', which looked like the one behind the web server. I opened Ghidra and started reversing it. For this research, I used Claude a lot, since it can be connected to Ghidra using Claude desktop and <a href="https://github.com/LaurieWired/GhidraMCP">GhidraMCP</a>. Although Claude still has many flaws when diving deep into reversing and exploitation, it is pretty much useful in the initial phase, in which the main goal is just figuring out which are the most interesting functions of an executable, tracing user input, identifying global tables, figuring out structures, etc.
+I quickly found the binary '/bin/zhttpd', which handled the HTTP requests, and loaded it into Ghidra. For this research, I used Claude a lot, since it can be connected to Ghidra using <a href="https://github.com/LaurieWired/GhidraMCP">GhidraMCP</a>. Although Claude still has many flaws when diving deep into reversing and exploitation, it is pretty much useful in the initial phase, in which the main goal is just figuring out which are the most interesting functions of an executable, tracing user input, identifying global tables, figuring out structures, etc.
 
 Using this setup, I quickly identified a global table that mapped routes with their handler functions:
 
@@ -190,17 +177,17 @@ Using this setup, I quickly identified a global table that mapped routes with th
 
 This allowed me to confirm that the '/bin/zhttpd' binary that I had was close enough with the one in my ISP router, since most of these routes were accessible.
 
-After a quick look at each of them, '/cgi-bin/LogResult?action' caught my attention, which was mapped to function 'zHttpLogHandle'. This endpoint was responsible for managing device log operations and supported multiple actions through the 'action' parameter, such as creating network traffic captures ('START_CAPTUR', 'STOP_CAPTUR'), deleting logs ('DEL_LOG'), exporting logs ('EXPORT_LOG'), etc. In order to manage network traffic captures, it used system commands to execute and then stop 'tcpdump':
+After a quick look at each of them, '/cgi-bin/LogResult?action' caught my attention, which was mapped to function 'zHttpLogHandle'. This endpoint was responsible for managing device log operations and supported multiple actions through the 'action' parameter, such as creating network traffic captures and exporting them. To do so, it used system commands:
 
 <img src="/assets/images/posts/2026-06-01/zhttpd_start_stop_captur.png" style="width: 40em">
 
-When executing the log export functionality, function 'copyLog' was called, which reads a previously generated 'tcpdump' capture file and writes its contents into a new log file. The problem here is that 'copyLog' processes the network capture line by line using 'fgets' and then, for each line read, it constructs a shell command using a 'snprintf' wrapper. Then, it directly executes it using 'system':
+When executing the export functionality, function 'copyLog' is called, which reads a previously generated 'tcpdump' capture file and writes its contents into a new log file. The problem here is that 'copyLog' processes the network capture line by line using 'fgets' and then, for each line read, it constructs a shell command using a 'snprintf' wrapper. Then, it directly executes it using 'system':
 
 <img src="/assets/images/posts/2026-06-01/zhttpd_copyLog.png" style="width: 40em">
 
-Since this process does not include any sanitization of the binary data that comes out of the network capture, any string containing shell metacharacters will be interpreted by the shell and later executed, enabling remote command execution. Perfect.
+Since this process does not include any sanitization of the binary data that comes out of the network capture, any string containing shell metacharacters is interpreted by the shell and later executed, enabling remote command execution. Perfect.
 
-Now, in order to exploit this, the attacker had to be authenticated. As I previously mentioned, all authenticated requests to the web interface were encrypted, but this could be easily reversed since all encryption logic happened in clientside JavaScript:
+To exploit this, the attacker required authentication. Also, as I previously mentioned, all authenticated requests to the web interface were encrypted, but this could be easily reversed by looking at the clientside JavaScript:
 
 <img src="/assets/images/posts/2026-06-01/zhttpd_encryption.png" style="width: 45em">
 
@@ -226,9 +213,9 @@ Once inside, the first thing I did was to extract the 'admin' password. To do so
 <code>/ # mtd -q -q readflash /tmp/flashdump 256 65280 bootloader
 / # grep -a "[\x80-\xFF]" /tmp/flashdump > /tmp/pass</code>
 
-The password was a random 10 alphanumeric string which seemed unique for this device, and it worked for both 'admin' and 'root' users. Once obtained, I was able to fully access the device using both SSH and UART.
+The password was a random 10 alphanumeric string which seemed unique for this device, and it worked for both 'admin' and 'root'. Once obtained, I was able to fully access the device using both SSH, UART and telnet.
 
-Then, I proceeded to do some basic recon, in order to find which services were really exposed on the device and see if they matched what I saw earlier in the network scan:
+I then proceeded to do some basic recon, in order to find which services were really exposed on the device and see if they matched what I saw earlier in the network scan:
 
 <code># netstat -natpul
 Active Internet connections (only servers)
@@ -267,17 +254,17 @@ udp        0      0 0.0.0.0:1900            0.0.0.0:*                           
 udp        0      0 :::546                  :::*                                2953/dhcp6c
 udp        0      0 :::53                   :::*                                3032/dnsmasq</code>
 
-The output mostly confirmed what I already knew and allowed identifying some UDP services. However, the one that caught my attention was TCP port 38400, since its corresponding binary, and therefore the one exposing the UPnP 'InternetGatewayDevice', was 'zupnp'. This binary was nowhere to be found in the stock EX3301-T0 firmware, which meant it was either an ISP-developed binary or part of some Zyxel SDK made available to OEMs. Anyways, the fact that it wasn't in the public firmware made it an interesting target for me, so I loaded it into Ghidra and started reversing it.
+The output mostly confirmed what I already knew and allowed identifying some additional UDP services. However, the what caught my attention was TCP port 38400 (UPnP 'InternetGatewayDevice'), since the program behind was 'zupnp'. This binary was nowhere to be found in the stock EX3301-T0 firmware, which meant it was either an ISP-developed binary or part of some Zyxel SDK made available to OEMs. Anyways, the fact that it wasn't in the public firmware made it an interesting target for me, so I loaded it into Ghidra and started reversing it.
 
-The UPnP 'InternetGatewayDevice' allowed interacting with several UPnP services with many different commands. The most interesting one was 'AddPortMapping', from the 'WANPPPConnection' service, which accepted a lot of user parameters in order to create a new NAT port forwarding rule. To handle this command, function 'zupnpPortMappingExecute' was eventually executed, which then called another function at address '0x0040f390' that processed the supplied parameters and added the corresponding NAT rule in the system firewall using 'iptables'. However, this last function did not implement any validation on user parameters, which got inserted directly into the 'iptables' command that got executed using 'zsystem', a 'system' wrapper:
+The UPnP 'InternetGatewayDevice' allowed interacting with several UPnP services with many different commands. The most interesting one was 'AddPortMapping', from the 'WANPPPConnection' service, which accepted a lot of user parameters to create a new NAT port forwarding rule. The handler for this command was 'zupnpPortMappingExecute', which called another function that processed user parameters and added the new NAT rule into the system firewall using 'iptables'. However, this last function did not implement any validation on user input, which got inserted directly into the 'iptables' command, that got executed using 'zsystem' (a 'system' wrapper):
 
 <img src="/assets/images/posts/2026-06-01/zupnp_snprintf.png" style="width: 40em">
 
-This obviously constituted another command injection vulnerability, this time in an unauthenticated service. Exploitation was a bit trickier, though. The parameters susceptible to injection, 'NewRemoteHost' and 'NewInternalClient', were copied into fixed-size local buffers using 'strncpy' before being inserted into the command string, limiting each of them to 15 characters:
+It was obviously another command injection, this time in an unauthenticated service. Exploitation was a little bit, though. The parameters susceptible to injection, 'NewRemoteHost' and 'NewInternalClient', were copied into 15-byte buffers before being inserted into the command string, limiting each of them to 15 characters:
 
 <img src="/assets/images/posts/2026-06-01/zupnp_strncpy.png" style="width: 40em">
 
-This meant that a single request was not enough to inject a meaningful payload. To work around this, I created an exploit that builds a temporary script on the device character by character across multiple requests and then executes it. Since both 'NewRemoteHost' and 'NewInternalClient' are inserted into the same 'iptables' command at different positions, both fields can be injected simultaneously on each request. 'NewRemoteHost' is used to define a shell variable containing the path of the temporary script with 'a=/tmp/a', while 'NewInternalClient' is used to append one character at a time to it with 'printf X>>$a', where 'X' is the character being written. The full command executed on each request is the following:
+To work around this, I created an exploit that builds a temporary script on the device character by character across multiple requests and then executes it. Since both 'NewRemoteHost' and 'NewInternalClient' are inserted into the same 'iptables' command at different positions, both fields can be injected simultaneously on each request. 'NewRemoteHost' is used to define a shell variable containing the path of the temporary script ('a=/tmp/a'), while 'NewInternalClient' is used to append one character at a time to it ('printf X>>$a'). The full command executed on each request is the following:
 
 <code class="language-bash">iptables -t nat -A NAT_PORT_MAPPING_UPNP_1 -p tcp --source ;a=/tmp/a;" --dport 1337 -j DNAT --to ";printf X>>$a;:1337</code>
 
@@ -289,9 +276,9 @@ a=/tmp/a;                       # NewRemoteHost
 printf X>>$a;                   # NewInternalClient
 :1337</code>
 
-Note that the quotes are intentionally injected as part of the exploit. Since the shell would otherwise stop executing after the first injected command, the closing quote from 'NewRemoteHost' and the opening quote from 'NewInternalClient' are used to keep the rest of the 'iptables' command syntactically valid, ensuring all injected commands are executed. 
+Note that the quotes are intentionally injected as part of the exploit. Without them, the shell would stop executing after the first injected command. By using the closing quote from 'NewRemoteHost' and the opening quote from 'NewInternalClient', the rest of the 'iptables' command remains syntactically valid, ensuring that all injected commands are executed.
 
-Once the full reverse shell command is assembled in '/tmp/a', a final request executes it with ';sh /tmp/a;', achieving unauthenticated Remote Code Execution as root :D
+Once the full reverse shell command is assembled in '/tmp/a', a final request executes it with ';sh /tmp/a;', achieving unauthenticated remote code execution as root :D
 
 <img src="/assets/images/posts/2026-06-01/zupnp_poc.png" style="width: 40em">
 
@@ -300,9 +287,11 @@ Again, this vulnerability was reported to Zyxel, who confirmed that 'zupnp' was 
 
 ----[ Diving into the kernel ]------------------------
 
-Great, I had discovered two command injections: one in the web interface, and one in the UPnP service. But now that I had gained a fairly good understanding of the device, I wanted to try finding something more complex that would let me really explore exploitation development in the wild. Something like a stack overflow with binary protections or a complex UAF. Or maybe... something in the kernel. Remember those UPnP ports exposing  'WFADevice'? They forwarded user input directly to the kernel via 'ioctl'. Also, this device ran a very old MIPS Linux kernel, which likely had few modern protections, so this seemed like a nice introduction to kernel exploitation if I could find something.
+Great, I had discovered two command injections: one in the web interface and another one in the UPnP service. But now that I had gained a fairly good understanding of the device, I wanted to try finding something more complex that would let me really explore exploit development in the wild. Something like a stack overflow with binary protections or a complex UAF. Or maybe... something in the kernel.
 
-So first, I opened again the '/usr/bin/wscd' binary in Ghidra and began to dig deeper. As I already discussed earlier, it exposed the standardized UPnP 'WFADevice', which allowed configuration of WiFi parameters over IP using WPS. In this case, this UPnP device only implemented one service, named <a href="https://www.wi-fi.org/system/files/WFA_WLANConfig_1_0_Template_1_01.pdf">'WFAWLANConfig'</a>. Although the standard protocol describes several commands, 'wscd' only implemented 4 of them:
+Remember the UPnP 'WFADevice'? It forwarded user input directly to the kernel via 'ioctl'. Also, this device ran a very old MIPS Linux kernel, which likely had few modern protections, so this seemed like a nice introduction to kernel exploitation, if I could find something.
+
+So first, I opened again the '/usr/bin/wscd' binary in Ghidra and began to dig deeper. As I already discussed earlier, it exposed 'WFADevice', which allowed configuration of WiFi parameters over IP using WPS. In this case, this UPnP device only implemented one service, named <a href="https://www.wi-fi.org/system/files/WFA_WLANConfig_1_0_Template_1_01.pdf">'WFAWLANConfig'</a>. Although the standard protocol describes several commands, 'wscd' only had 4 of them:
 
 - GetDeviceInfo
 - PutMessage
@@ -313,9 +302,9 @@ Command 'GetDeviceInfo' didn't have parameters, since it only retrieved some WiF
 
 <img src="/assets/images/posts/2026-06-01/wscd_ioctl.png" style="width: 40em">
 
-This command '0x8BE1' falls within the <a href="https://github.com/torvalds/linux/blob/master/include/uapi/linux/wireless.h#L328">Linux Wireless Extensions private range</a> (0x8BE0-0x8BFF), which means it bypasses the generic network stack entirely and is handled by the private handler of the corresponding network drivers. In this case, the WiFi chipset was from Mediatek, so the network drivers were made by Mediatek too, and they were compiled directly within the kernel. This all meant that, in order to follow the user input from there, I had to get my hands dirty and start reversing some kernel stuff.
+This command '0x8BE1' falls within the <a href="https://github.com/torvalds/linux/blob/master/include/uapi/linux/wireless.h#L328">Linux Wireless Extensions private range</a> (0x8BE0-0x8BFF), meaning it bypasses the generic network stack and is instead handled by the private 'ioctl' handler of the corresponding wireless driver. In this case, the WiFi chipset was from Mediatek, so the driver was also Mediatek-provided and compiled directly into the kernel. This implied that following the user input path would require diving into kernel space and reversing driver code directly.
 
-Next step then was to obtain the kernel image, which I extracted directly from the memory of the device: 
+Next step was then to obtain the kernel image, which I extracted directly from the memory of the device: 
 
 <code># cat /proc/iomem
 00002000-0effffff : System RAM
@@ -343,13 +332,15 @@ Next step then was to obtain the kernel image, which I extracted directly from t
 15386176 bytes (14.7MB) copied, 123.994837 seconds, 121.2KB/s
 #</code>
 
-Then, I loaded it on Ghidra and set the corresponding memory base address, which was '0x80002000'. Since analyzing the whole kernel would take ages, I obtained the '/proc/kallsyms' file from the device, which holds kernel exported symbol definitions and their addresses, and imported them to Ghidra using a very quick vibe coded script. At this point I also noted that 'KASLR' was not enabled, so all symbol addresses were static and remained the same across reboots. With that, I had already over 25000 kernel functions located:
+I loaded it on Ghidra and set the corresponding memory base address, which was '0x80002000'. Since analyzing the whole kernel would take ages, I obtained the '/proc/kallsyms' file from the device, which holds kernel exported symbols and their addresses, and imported it into to Ghidra using a quick vibe-coded script. At this point I also noted that 'KASLR' was not enabled, so all symbol addresses were static and remained the same across reboots. With that, I had already over 25000 kernel functions located:
 
 <img src="/assets/images/posts/2026-06-01/kernel_functions.png" style="width: 35em">
 
-With Claude's help, I found that the function that handled 'ioctl' messages with command '0x8BE1' was 'rt28xx_ap_ioctl', which is a very consistent name for a Mediatek driver function considering the existence of Mediatek 'RT28xx' family of models. This 'rt28xx_ap_ioctl' function dispatched the 'ioctl' message based on which 'WFAWLANConfig' UPnP command had been sent, and ultimately called its corresponding handler function. With this, I already had the full picture, so I started to look for vulnerabilities.
+With Claude's help, I found that the function handling 'ioctl' messages with command '0x8BE1' was 'rt28xx_ap_ioctl'. The naming was consistent with the Mediatek RT28xx driver family, which confirmed I was looking at vendor code. This function acted as a dispatcher, routing each 'ioctl' message to the appropriate handler depending on the received 'WFAWLANConfig' UPnP command. With this, I already had the full picture, so I started to look for vulnerabilities.
 
-After reversing the code paths for the three available 'WFAWLANConfig' UPnP commands, I identified an issue in how the 'SetSelectedRegistrar' parameter is parsed inside 'WscSelectedRegistrar', its handler function in the kernel driver. The 'SetSelectedRegistrar' command is used within the WPS authentication flow to notify the access point about the state of an ongoing WPS operation, but the exact details are not important here. What matters is that 'SetSelectedRegistrar' accepts a single parameter, 'NewMessage', which is a base64-encoded string containing one or more TLV (Type-Length-Value) structures. The 'WscSelectedRegistrar' function receives the decoded buffer and processes each TLV sequentially. For TLV payloads with type '0x1049', it does the following:
+After tracing the available 'WFAWLANConfig' command handlers, I focused on 'SetSelectedRegistrar', which is processed by 'WscSelectedRegistrar' in the kernel driver. This command is part of the WPS auth flow and is used to signal the state of an ongoing registration process. It takes a single parameter, 'NewMessage', which is a base64-encoded blob containing one or more TLV (Type-Length-Value) structures. Once decoded, 'WscSelectedRegistrar' iterates over these TLVs sequentially and processes them one by one.
+
+For TLVs of type '0x1049', it does the following:
 
 <code class="language-c">void WscSelectedRegistrar(int param_1, void *buf_ptr, uint buf_len, uint param_4) {
     // ...
@@ -374,7 +365,7 @@ After reversing the code paths for the three available 'WFAWLANConfig' UPnP comm
         memset(sub_item, 0, tlv_len);
 
         // extracts and copies sub-item from buf_ptr into sub_item
-        WscParseV2sub_item(1, buf_ptr, tlv_len, sub_item, sub_item_len);
+        WscParseV2SubItem(1, buf_ptr, tlv_len, sub_item, sub_item_len);
       
         buf_len = (buf_len - tlv_len) - 4;
         buf_ptr = buf_ptr + tlv_len;
@@ -384,9 +375,9 @@ After reversing the code paths for the three available 'WFAWLANConfig' UPnP comm
     // ...
 }</code>
 
-For the first '0x1049' TLV, the function validates its type and size, allocates a new 'sub_item' buffer of 'tlv_len' bytes, clears it, and calls 'WscParseV2SubItem'. This function parses and validates sub-items within the TLV payload and copies the relevant data to the 'sub_item' buffer. However, for the next '0x1049' TLVs, type and size are validated again, but since 'sub_item' is no longer null, buffer allocation is skipped entirely. 'WscParseV2SubItem' then copies the sub-item within the new TLV into the same old 'sub_item' buffer. If the sub-item of the second TLV is larger than the first, the copy exceeds the allocated size and overflows into the next object on the kernel heap, producing a classic kernel heap overflow!
+On the first '0x1049' TLV, the function allocates a buffer 'sub_item' of size 'tlv_len', clears it, and safely copies the parsed sub-item into it. However, for the next '0x1049' entries, the allocation is skipped because 'sub_item' is already initialized. Instead, the new TLV content is directly copied into the original buffer. The issue is that nothing ensures the next 'tlv_len' fits within the originally allocated size. If a later '0x1049' TLV contains a larger sub-item than the first one, 'WscParseV2SubItem' writes beyond the bounds of the allocated heap buffer, resulting in a classic kernel heap overflow!
 
-So, I wrote a very simple PoC that sent a packet containing two '0x1049' TLVs, where the first contained a 20-byte sub-item and the second contained a 255-byte sub-item (maximum size since sub-item length is a 1-byte integer):
+I wrote a simple PoC that sends a packet containing two '0x1049' TLVs. The first contains a 20-byte sub-item, while the second uses the maximum allowed size of 255 bytes (sub-item length field is only a single byte):
 
 <code class="language-python">import base64, requests
 
@@ -773,7 +764,56 @@ payload = (
 )
 </code>
 
-After some waiting, I finally had it: an unauthenticated remote kernel heap overflow exploit that modified root password!
+As a summary, this is the diagram that represents the steps that should happen at a high level on a successful exploitation attempt:
+
+<code>
+                   +------------------------------------------------------------------------------+
+                   | device           +---------------------------------------------------------+ |
+                   |                  | kernel                                                  | |
+                   |  +----------+    | +-----------------------------------------------------+ | |
+                   |  | wscd     |    | | mediatek driver                                     | | |
++----------+  1.   |  |          | 2. | |                              8.                     | | |
+| attacker |--------->| ioctl() ------------> WscSelectedRegistrar() -----> WscGenV2Msg()     | | |
+|          |       |  |          |    | |              |                          |           | | |
+|          |       |  |          |    | |              v                          v           | | |
+|          |       |  |          |    | |        3.[overflow]           9.[kmalloc-128 alloc] | | |
+|          |       |  |          |    | |              |                          |           | | |
+|          |       |  |          |    | |              v                          v           | | |
+|          |       |  |          |    | |    4.[freelist hijacking]     10.[arbitrary write]  | | |
+|          |       |  |          |    | |                                         |           | | |
+|          |  5.   |  |          | 6. | |                                         |           | | |
+|          |--------->| ioctl() ------------> WscSelectedRegistrar()              |           | | |
++----------+       |  |          |    | |              |                          |           | | |
+                   |  +----------+    | |              v                          |           | | |
+                   |                  | |    7.[kmalloc-128 alloc]                |           | | |
+                   |                  | |                                         |           | | |
+                   |                  | +-----------------------------------------|-----------+ | |
+                   |                  |                                           |             | |
+                   |                  |        +----------------------------------+             | |
+                   |                  |        |                                                | |
+                   |                  |        v                                                | |
+                   |                  |    0x8084f864                                           | |
+                   |                  |    ...                                                  | |
+                   |                  |    0x8084f884 - udp_rcv ------+  11.                    | |
+                   |                  |    ...                        |------> 12.[shellcode]   | |
+                   |                  |    0x8084f894 - tcp_v4_rcv ---+               |         | |
+                   |                  |    ...                                        |         | |
+                   |                  +-----------------------------------------------|---------+ |
+                   |                                                                  v           |
+                   |                                                      /data/zcfg_config.json  |
+                   +------------------------------------------------------------------------------+</code><ol><li>Attacker sends 'SetSelectedRegistrar' command to UPnP 'WFADevice', handled by 'wscd'.</li>
+<li>Binary 'wscd' processes the command and sends its payload to the kernel using 'ioctl'. It is ultimately received by 'WscSelectedRegistrar' inside the Mediatek driver.</li>
+<li>Function 'WscSelectedRegistrar' processes the payload, which produces a heap overflow in 'kmalloc-128'.</li>
+<li>If the adjacent object in 'kmalloc-128' is free, its freelist pointer is overwritten. Freelist is now corrupted and the last node points to '0x8084f864'.</li>
+<li>While this happens, the attacker sends another 'SetSelectedRegistrar' command.</li>
+<li>The second payload ultimately reaches 'WscSelectedRegistrar' on the Mediatek kernel driver.</li>
+<li>Function 'WscSelectedRegistrar' allocates a buffer for the second payload in 'kmalloc-128', freelist is updated and the next node points to '0x8084f864'.</li>
+<li>Processing of the first payload continues and 'WscGenV2Msg' is called.</li>
+<li>Function 'WscGenV2Msg' allocates a buffer in 'kmalloc-128', which lands on '0x8084f864'.</li>
+<li>Function 'WscGenV2Msg' writes 8 bytes of fixed data + the contents of the payload into the buffer, which is at '0x8084f864', overwriting 'udp_rcv' and 'tcp_v4_rcv' function pointers.</li>
+<li>Eventually, either 'udp_rcv' or 'tcp_v4_rcv' are called and execution is redirected to attacker shellcode.</li>
+<li>Shellcode executes a command asynchronously that modifies the root password on the persistent configuration of the device.</li></ol>
+I executed the exploit and, after some waiting, it finally happend. I successfully exploited the unauthenticated remote kernel heap overflow and modified root password of the device permanently!
 
 <img src="/assets/images/posts/2026-06-01/kernel_rce.png" style="width: 40em">
 
@@ -782,6 +822,6 @@ I reported this vulnerability to Mediatek and it was assigned CVE-2026-20452. Ag
 
 ----[ Conclussions ]----------------------------------
 
-This has been the longest and most advanced research I have done, and the length of this blog post accurately reflects it. If you have reached the end, thank you so much. I hope you liked it and enjoyed it :D
+
 
 {% endraw %}
