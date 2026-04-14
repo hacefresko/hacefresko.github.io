@@ -8,13 +8,13 @@ html {
     color: #ffffff;
 }
 
-/* Hide scrollbar */
+/* hide scrollbar */
 html::-webkit-scrollbar {
-  display: none; /* Chrome, Safari and Opera */
+  display: none; /* chrome, safari and opera */
 }
 html {
-  -ms-overflow-style: none;  /* IE and Edge */
-  scrollbar-width: none;  /* Firefox */
+  -ms-overflow-style: none;  /* ie and edge */
+  scrollbar-width: none;  /* firefox */
 }
 
 body {
@@ -53,7 +53,7 @@ code {
     margin: auto;
     overflow: auto;
     white-space: pre;
-    max-width: 760px;
+    max-width: 800px;
     display: block;
 }
 
@@ -99,7 +99,7 @@ code {
 }
 
 #page {
-    min-height: 16em;
+    min-height: 17em;
     position: relative;
 }
 
