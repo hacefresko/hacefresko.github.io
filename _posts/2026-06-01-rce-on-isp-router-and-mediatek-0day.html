@@ -27,7 +27,7 @@ This journey begins in late summer 2025, when my colleague <a href="https://x.co
 
 After many intense days (and nights) of hacking, we were not able to come up with a working exploit (although we did collect a decent number of DoS scripts lol). After dealing with the frustration, I decided to take a break from hacking for a few months and dedicate my free time to resting and enjoying life. Of course, that did not happen and, instead, I somehow ended up diving into this massive research.
 
-The thing is that a few months earlier I had switched ISPs, which meant getting a new router. Although I am obviously not going to refer to this ISP by its name because it probably won't ever fix anything described in here, it is a medium sized one here in Spain that was gaining a lot of popularity at the moment due to offering good quality Internet at a low price. So, as always, I wanted to know what was inside this new router that would effectively act as the door to my home.
+The thing is that a few months earlier I had switched ISPs, which meant getting a new router. I am obviously not going to refer to this ISP by its name because it probably won't ever fix anything described in here, but it is a medium sized one here in Spain that was gaining a lot of popularity at the time due to offering good quality Internet at a low price. So, as always, I wanted to know what was inside this new router that would effectively act as the door to my home.
 
 The router was a Zyxel device, although I did not know the model yet. I noticed that it supported both SSH and telnet, so I connected using the credentials provided by the ISP technician ("user:user") and was presented with a restricted Zyxel shell:
 
@@ -165,11 +165,11 @@ DECIMAL       HEXADECIMAL     DESCRIPTION
 372           0x174           LZMA compressed data, properties: 0x6C, dictionary size: 8388608 bytes, uncompressed size: 16279488 bytes
 4180222       0x3FC8FE        Squashfs filesystem, little endian, version 4.0, compression:lzma, size: 26706310 bytes, 2393 inodes, blocksize: 262144 bytes, created: 2025-04-11 08:20:33</code>
 
-With the filesystem extracted, I focused on the UPnP services identified in the scan, as they are often poorly secured and their binaries are usually easy to reverse using strings. However, I could not find any binary listening on port 38400 or implementing the 'InternetGatewayDevice', so I assumed this was something added by the ISP. Ports 49152 and 49153 ('WFADevice') were handled by '/usr/bin/wscd', but most commands were forwarded directly to the kernel via 'ioctl', which seemed too complicated at that point (keep this in mind, as it will be relevant later).
+With the filesystem extracted, I focused on the UPnP services identified in the scan, as they are often poorly secured and their binaries are usually easy to reverse using strings. However, I could not find any program listening on port 38400 or implementing the 'InternetGatewayDevice', so I assumed this was something added by the ISP. Ports 49152 and 49153 ('WFADevice') were handled by '/usr/bin/wscd', but most commands were forwarded directly to the kernel via 'ioctl', which seemed too complicated at that point (keep this in mind, as it will be relevant later).
 
 By then, I just wanted a quick way inside the router and did not care about the potential findings requiring authentication. So I decided to take a look into the web interface, since there had already been command injections there in the past.
 
-I quickly found the binary '/bin/zhttpd', which handled the HTTP requests, and loaded it into Ghidra. For this research, I used Claude a lot, since it can be connected to Ghidra using <a href="https://github.com/LaurieWired/GhidraMCP">GhidraMCP</a>. Although Claude still has many flaws when diving deep into reversing and exploitation, it is pretty much useful in the initial phase, in which the main goal is just figuring out which are the most interesting functions of an executable, tracing user input, identifying global tables, figuring out structures, etc.
+I quickly found the binary '/bin/zhttpd', which handled the HTTP requests, and loaded it into Ghidra. For this research, I used Claude a lot, since it can be connected to Ghidra using <a href="https://github.com/LaurieWired/GhidraMCP">GhidraMCP</a>. Although Claude still has many flaws when diving deep into reversing and exploitation, it is quite useful in the initial phase, in which the main goal is just figuring out which are the most interesting functions of an executable, tracing user input, identifying global tables, figuring out structures, etc.
 
 Using this setup, I quickly identified a global table that mapped routes with their handler functions:
 
@@ -213,7 +213,7 @@ Once inside, the first thing I did was to extract the 'admin' password. To do so
 <code>/ # mtd -q -q readflash /tmp/flashdump 256 65280 bootloader
 / # grep -a "[\x80-\xFF]" /tmp/flashdump > /tmp/pass</code>
 
-The password was a random 10 alphanumeric string which seemed unique for this device, and it worked for both 'admin' and 'root'. Once obtained, I was able to fully access the device using both SSH, UART and telnet.
+The password was a random 10 alphanumeric string which seemed unique for this device, and it worked for both 'admin' and 'root'. Once obtained, I was able to fully access the device using SSH, UART and telnet.
 
 I then proceeded to do some basic recon, in order to find which services were really exposed on the device and see if they matched what I saw earlier in the network scan:
 
@@ -254,7 +254,7 @@ udp        0      0 0.0.0.0:1900            0.0.0.0:*                           
 udp        0      0 :::546                  :::*                                2953/dhcp6c
 udp        0      0 :::53                   :::*                                3032/dnsmasq</code>
 
-The output mostly confirmed what I already knew and allowed identifying some additional UDP services. However, the what caught my attention was TCP port 38400 (UPnP 'InternetGatewayDevice'), since the program behind was 'zupnp'. This binary was nowhere to be found in the stock EX3301-T0 firmware, which meant it was either an ISP-developed binary or part of some Zyxel SDK made available to OEMs. Anyways, the fact that it wasn't in the public firmware made it an interesting target for me, so I loaded it into Ghidra and started reversing it.
+The output mostly confirmed what I already knew and allowed identifying some additional UDP services. However, what caught my attention was TCP port 38400 (UPnP 'InternetGatewayDevice'), in which the program that was listening was 'zupnp'. This binary was nowhere to be found in the stock EX3301-T0 firmware, which meant it was either an ISP-developed program or part of some Zyxel SDK made available to OEMs. Anyways, the fact that it wasn't in the public firmware made it an interesting target for me, so I loaded it into Ghidra and started reversing it.
 
 The UPnP 'InternetGatewayDevice' allowed interacting with several UPnP services with many different commands. The most interesting one was 'AddPortMapping', from the 'WANPPPConnection' service, which accepted a lot of user parameters to create a new NAT port forwarding rule. The handler for this command was 'zupnpPortMappingExecute', which called another function that processed user parameters and added the new NAT rule into the system firewall using 'iptables'. However, this last function did not implement any validation on user input, which got inserted directly into the 'iptables' command, that got executed using 'zsystem' (a 'system' wrapper):
 
