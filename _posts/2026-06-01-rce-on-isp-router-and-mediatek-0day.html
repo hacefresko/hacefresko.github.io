@@ -16,7 +16,7 @@ header:
 
 As usual, this research is heavily based on reverse engineering and a fair amount of trial and error, so please excuse any mistakes, especially in low-level kernel stuff, as this is a very complex topic. If you find something that is awfully wrong and want to help me correct it, I am absolutely open to it. Also, take into account that, to prevent this post from being twice as long, I have omitted A LOT of rabbit holes and dead ends, as well as some intermediate steps and implementation details. This write-up does not reflect the end-to-end process of the research, just the key highlights.
 
-Huge thanks to the community and all the amazing colleagues who supported me along the way. Anyways, enough introduction. Let's start with the post, since there is a lot to cover.
+Huge thanks to the community and all the amazing colleagues who supported me along the way. Anyway, enough introduction. Let's start with the post, since there is a lot to cover.
 
 <img src="/assets/images/posts/2026-06-01/header.png" style="width: 30em">
 
@@ -254,7 +254,7 @@ udp        0      0 0.0.0.0:1900            0.0.0.0:*                           
 udp        0      0 :::546                  :::*                                2953/dhcp6c
 udp        0      0 :::53                   :::*                                3032/dnsmasq</code>
 
-The output mostly confirmed what I already knew and allowed identifying some additional UDP services. However, what caught my attention was TCP port 38400 (UPnP 'InternetGatewayDevice'), in which the program that was listening was 'zupnp'. This binary was nowhere to be found in the stock EX3301-T0 firmware, which meant it was either an ISP-developed program or part of some Zyxel SDK made available to OEMs. Anyways, the fact that it wasn't in the public firmware made it an interesting target for me, so I loaded it into Ghidra and started reversing it.
+The output mostly confirmed what I already knew and allowed identifying some additional UDP services. However, what caught my attention was TCP port 38400 (UPnP 'InternetGatewayDevice'), which was handled by the program 'zupnp'. This binary was nowhere to be found in the stock EX3301-T0 firmware, which meant it was either an ISP-developed program or part of some Zyxel SDK made available to OEMs. Anyway, the fact that it wasn't in the public firmware made it an interesting target for me, so I loaded it into Ghidra and started reversing it.
 
 The UPnP 'InternetGatewayDevice' allowed interacting with several UPnP services with many different commands. The most interesting one was 'AddPortMapping', from the 'WANPPPConnection' service, which accepted a lot of user parameters to create a new NAT port forwarding rule. The handler for this command was 'zupnpPortMappingExecute', which called another function that processed user parameters and added the new NAT rule into the system firewall using 'iptables'. However, this last function did not implement any validation on user input, which got inserted directly into the 'iptables' command, that got executed using 'zsystem' (a 'system' wrapper):
 
@@ -534,7 +534,7 @@ After the overflow, the driver continues processing the extracted sub-item as fo
     // ...
 }</code>
 
-If a '0x1041' TLV with value 1 is present within the WPS packet, execution reaches 'WscGenV2Msg'. This function allocates a 128-byte buffer ('kmalloc-128') and calls 'WscAppendV2SubItem', which copies the TLV sub-item into the buffer. This seemed like the perfect target for the exploit, since it wrote controlled data into the 'kmalloc-128' allocated buffer. However, there was a critical ordering issue: the biffer allocation in 'WscGenV2Msg' was the first 'kmalloc-128' allocation after the overflow, not the second one. This meant that it would land on the corrupted object itself ('free_2'), not at 'arbitrary_location'. For the freelist hijacking to work,something else needed to consume 'free_2' first.
+If a '0x1041' TLV with value 1 is present within the WPS packet, execution reaches 'WscGenV2Msg'. This function allocates a 128-byte buffer ('kmalloc-128') and calls 'WscAppendV2SubItem', which copies the TLV sub-item into the buffer. This seemed like the perfect target for the exploit, since it wrote controlled data into the 'kmalloc-128' allocated buffer. However, there was a critical ordering issue: the buffer allocation in 'WscGenV2Msg' was the first 'kmalloc-128' allocation after the overflow, not the second one. This meant that it would land on the corrupted object itself ('free_2'), not at 'arbitrary_location'. For the freelist hijacking to work, something else needed to consume the corrupted object first.
 
 I reviewed the code trying to find any way to trigger an additional 'kmalloc-128' allocation between the overflow and 'WscGenV2Msg', but there was none. The execution flow was deterministic with no controllable branches that would add allocations. However, the answer wasn't in the code itself.
 
@@ -626,7 +626,7 @@ The strategy now was finding a set of function pointers that would be dereferenc
 <ol><li>The target area to be overwritten needed to start with 4 null bytes, since the kernel would still try to traverse the corrupted freelist pointer to allocate any next object after the corruption. If the first 4 bytes weren't valid, the allocator would crash immediately.</li>
 <li>On a failed attempt, the exploit needed to cause a reboot, since it required many attempts to succeed. To do so, the first 4 bytes of the target area needed to be dereferenced so that the bytes written automatically on failed attempts would crash the device. Else, 'wscd' would go down but the system would stay up, preventing exploitation.</li>
 <li>On a successful attempt, a WPS header of 8 bytes was written before the controlled data, meaning that any target function pointer had to be located at a minimum of 8 bytes into the target area.</li></ol>
-Too many hours later of long Claude sessions, reading kernel code and doing a lot of manual testing on the device, I finally found some function pointers that met these requirements. They were located in something like a protocol handler table at '0x8084f864':
+After many hours talking with Claude, reading kernel code and doing a lot of manual testing on the device, I finally found some function pointers that met these requirements. They were located in something like a protocol handler table at '0x8084f864':
 
 <code>8084f864: 00 00 00 00  - null (icmp_early_demux?)
 8084f868: 80 72 f7 a8  - icmp_rcv
