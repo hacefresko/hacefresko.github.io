@@ -462,6 +462,8 @@ Now, freelist hijacking consists of corrupting the freelist pointer stored at th
 
 In this case, since no freelist protections were enabled, the previously identified heap overflow allowed overwriting the freelist pointer of the adjacent free object on the same cache, which was 'kmalloc-128'. This was the smallest general-purpose cache on the device. Besides, targeting larger caches was impossible, since the maximum size of TLV sub-items was 255 bytes, which was not enough to overflow into adjacent objects in bigger caches, such as in 'kmalloc-256'.
 
+Of course, for this to work, the overflowing object had to be next to a free object, so that its freelist pointer could be corrupted. Since this was a remote scenario, there was little control over the heap state at the moment of the overflow, so this was a very probabilistic situation. However, this will be discussed later.
+
 So, let's suppose that this was the state of objects in the cache and the freelist before the overflow:
 
 <code>kmalloc-128 cache:
@@ -713,7 +715,7 @@ payload = (
 
 Then, I added some logic to ping the device when it stopped responding, so it triggered reboots on failed attempts.
 
-Finally, I also included some initial heap spraying by sending several regular TLVs, so that many allocations and frees happened in 'kmalloc-128' before the overflow. Although I originally did not believe in this too much, testing revealed that it actually worked somehow. This improved the reliability of the exploit, which ended up working around 1 out of 15 times or so. There was, however, a possibility that the device could freeze if a crash failed to trigger a reboot and left the system too corrupted to continue running. Since this did not happen too often and resolving it would probably take too much effort, I ignored the issue :D
+Finally, I also included some initial heap spraying by sending several regular TLVs, so that many allocations and frees happened in 'kmalloc-128' just before the overflow, improving the odds for more free objects to exist in 'kmalloc-128'. Although I originally did not believe in this too much, testing revealed that it actually worked somehow. This improved the reliability of the exploit, which ended up working around 1 out of 15 times or so. There was, however, a possibility that the device could freeze if a crash failed to trigger a reboot and left the system too corrupted to continue running. Since this did not happen too often and resolving it would probably take too much effort, I ignored the issue :D
 
 Although I am sure there are ways to improve the exploit further and make the whole process more efficient, this was already enough for me. So, after some failed attempts, the exploit finally achieved executing shellcode on the device!
 
@@ -722,7 +724,7 @@ Although I am sure there are ways to improve the exploit further and make the wh
 
 ----[ Okay, but are 128 bytes enough? ]---------------
 
-If you have been paying attention, you will have realized that I can only execute around 120 bytes of shellcode due to the 128-byte arbitrary write limit. Initially, I was going to call this a success and move on. However, as I was writing this blog post, I realized that this wasn't enough. I needed to build a fully working exploit that could give me a root shell.
+If you have been paying attention, you will have realized that I can only execute around 120 bytes of shellcode due to the 128-byte arbitrary write limit. Initially, I was going to call this a success and move on. However, as I was writing this blog post, I started getting the feeling that this wasn't enough. I needed to build a fully working exploit that could give me a root shell.
 
 After some more research, I figured out that trying to execute a reverse shell would require the exploit to return cleanly so that the device did not crash, which seemed like way too much effort. Plus, I had almost no room for long strings, and any cleanup code would probably leave no room for anything else given my tight 120-byte budget. I needed to modify something that survived reboots, so that I did not have to worry about the device crashing after exploitation.
 
