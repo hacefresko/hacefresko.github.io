@@ -436,7 +436,7 @@ Some research later, I ended up going down a very different route, which was fre
 
 But first, we need to go over some kernel allocator concepts. In my case, neither 'CONFIG_SLAB_FREELIST_RANDOM' nor 'CONFIG_SLAB_FREELIST_HARDENED' were enabled, which are kernel protections related to the freelist. As such, the following explanations do not take these protections into account and only discuss the very basics.
 
-Inside the Linux kernel, heap memory is managed using the slab allocator (SLUB in modern kernels), which organizes memory into caches of fixed-size objects rather than a generic heap. Each cache handles objects of a specific size or type and is composed of slabs, which are contiguous blocks of pages divided into equal-sized objects. General-purpose caches such as 'kmalloc-128' and 'kmalloc-256' serve allocations up to those sizes (rounding up as needed). There are also dedicated caches for frequently used kernel structures like network sockets. These caches can be inspected via '/proc/slabinfo':
+Inside the Linux kernel, heap memory is managed using the slab allocator (SLUB in modern kernels). Instead of having a generic heap, this allocator organizes memory into caches. Each cache handles objects of a specific size or type and is composed of slabs, which are contiguous blocks of pages in which same-sized objects are located. General-purpose caches serve allocations up to certain sizes (rounding up as needed), such as 'kmalloc-128' and 'kmalloc-256' which contain objects of up to 128 and 256 bytes respectively. There are also dedicated caches for frequently used kernel structures like network sockets. All these caches can be inspected via '/proc/slabinfo':
 
 <code># cat /proc/slabinfo
 
@@ -489,7 +489,7 @@ Since 'free_2' has been corrupted, its freelist pointer no longer points to 'fre
 
 <span class="token regex">[free_2]</span>-&#62;<span class="token string">[arbitrary_location]</span>-&#62;<span class="token punctuation">[????]</span></code>
 
-Now, the next object 'kmalloc-128' allocation will land regularly on the corrupted object 'free_2' as expected. However, the second 'kmalloc-128' allocation after the overflow will then land on 'arbitrary_location', which is controlled by the attacker. Everything that gets written into this second allocated object will effectively be written into 'arbitrary_location', providing an arbitriary write primitive.
+Now, the next 'kmalloc-128' allocation will land regularly on the corrupted object 'free_2' as expected. However, the second 'kmalloc-128' allocation after the overflow will then land on 'arbitrary_location', which is controlled by the attacker. Everything that gets written into this second allocated object will effectively be written into 'arbitrary_location', providing an arbitriary write primitive.
 
 Lastly, 'arbitrary_location' must contain a valid freelist pointer or null (end of the freelist). Otherwise, the kernel would immediately crash trying to follow whatever bytes are there as a pointer on the next 'kmalloc-128' allocation, rendering the exploit useless. Since finding a useful write target that also happens to contain a valid freelist pointer results nearly impossible, the practical approach is to pick an 'arbitrary_location' that contains null, so the freelist terminates cleanly after the hijacked allocation:
 
@@ -497,7 +497,7 @@ Lastly, 'arbitrary_location' must contain a valid freelist pointer or null (end 
 
 <span class="token regex">[free_2]</span>-&#62;<span class="token string">[arbitrary_location]</span>-&#62;<span class="token punctuation">[null]<span></code>
 
-So, with this approach in mind, I needed to find a 'kmalloc-128' allocation that would occur as the second allocation after the overflow, and that would write attacker-controlled data into 'arbitrary_location'. Once I had this write primitive, I would worry about finding something useful to write to.
+So, with this approach in mind, I needed to find a 'kmalloc-128' allocation that would occur as the second allocation after the overflow, and that would write attacker-controlled data into the allocated object. Once I had this write primitive, I would worry about finding something useful to write to.
 
 
 ----[ The race condition ]----------------------------
