@@ -14,7 +14,7 @@ header:
   - CVE-2025-13943: Zyxel authenticated command injection in log export CGI
   - CVE-2026-20452: Mediatek MTXXX WPS heap overflow
 
-As usual, this research is heavily based on reverse engineering and a fair amount of trial and error, so please excuse any mistakes, especially in low-level kernel stuff, as this is a very complex topic. If you find something that is awfully wrong and want to help me correct it, I am absolutely open to it. Also, take into account that, to prevent this post from being twice as long, I have omitted A LOT of rabbit holes and dead ends, as well as some intermediate steps and implementation details. This write-up does not reflect the end-to-end process of the research, just the key highlights.
+As usual, this research is heavily based on reverse engineering and a fair amount of trial and error, so please excuse any possible mistakes, especially in low-level kernel stuff, as this is a very complex topic. Also, take into account that, to prevent this post from being twice as long, I have omitted A LOT of rabbit holes and dead ends, as well as some intermediate steps and implementation details. This write-up does not reflect the end-to-end process of the research, just the key highlights.
 
 Huge thanks to the community and all the amazing colleagues who supported me along the way. Anyway, enough introduction. Let's start with the post, since there is a lot to cover.
 
@@ -115,7 +115,7 @@ ZHAL></code>
 
 In short, no easy access to the device :(
   
-I then searched online to see if anyone had already found an easy way in. I found an article (which I won't share because it explicitly names the ISP) describing a method to extract the admin password from the web interface via an authenticated command injection in the dynamic DNS configuration page. I tried to reproduce it, but nothing happened. Additionally, special characters in other forms were blocked by the interface itself, which returned an error ("It is not possible to write special characters") and prevented the request from being sent:
+I then searched online to see if anyone had already found an easy way in. I found an old article (which I won't share because it explicitly names the ISP) describing a method to extract the admin password from the web interface, using a command injection in the dynamic DNS configuration page. I tried to reproduce it, but the vulnerability seemed already patched and nothing happened. Additionally, special characters in other forms were blocked by the interface itself, which returned an error ("It is not possible to write special characters") and prevented the request from being sent:
 
 <img src="/assets/images/posts/2026-06-01/no_special_chars.png" style="width: 25em">
 
@@ -208,7 +208,7 @@ This vulnerability was reported to Zyxel and assigned CVE-2025-13943. You can ta
 
 ----[ Exploring the device ]--------------------------
 
-Once inside, the first thing I did was to extract the 'admin' password. To do so, I just followed the article mentioned previously, which described how to obtain it directly from the bootloader memory:
+Once inside, the first thing I did was to extract the 'admin' password so that I did not depend on the 'zhttpd' exploit to access the device. To do so, I just followed the article mentioned previously, which described which bytes to look for in order to locate the password inside the bootloader memory:
 
 <code>/ # mtd -q -q readflash /tmp/flashdump 256 65280 bootloader
 / # grep -a "[\x80-\xFF]" /tmp/flashdump > /tmp/pass</code>
@@ -536,13 +536,13 @@ After the overflow, the driver continues processing the extracted sub-item as fo
 
 If a '0x1041' TLV with value 1 is present within the WPS packet, execution reaches 'WscGenV2Msg'. This function allocates a 128-byte buffer ('kmalloc-128') and calls 'WscAppendV2SubItem', which copies the TLV sub-item into the buffer. This seemed like the perfect target for the exploit, since it wrote controlled data into the 'kmalloc-128' allocated buffer. However, there was a critical ordering issue: the buffer allocation in 'WscGenV2Msg' was the first 'kmalloc-128' allocation after the overflow, not the second one. This meant that it would land on the corrupted object itself ('free_2'), not at 'arbitrary_location'. For the freelist hijacking to work, something else needed to consume the corrupted object first.
 
-I reviewed the code trying to find any way to trigger an additional 'kmalloc-128' allocation between the overflow and 'WscGenV2Msg', but there was none. The execution flow was deterministic with no controllable branches that would add allocations. However, the answer wasn't in the code itself.
+I reviewed the code trying to find any way to trigger an additional 'kmalloc-128' allocation between the overflow and 'WscGenV2Msg', but there was none. The execution flow was deterministic with no controllable branches that would add allocations.
 
 Since this is the kernel, there are many concurrent 'kmalloc-128' allocations happening in other processes. However, relying on them was not an option, since the chance of one occurring exactly at the right moment was too low, making the exploit impractical. Still, thinking about this gave me a crucial idea. 
 
 After some Claude-assisted brainstorming, fuzzing and essentially poking the device with a stick until something different happened, I finally found a solution. It consisted of exploiting the fact that the kernel somehow processes these WPS 'ioctl' messages concurrently. By sending multiple requests simultaneously, there was a chance that a 'kmalloc-128' allocation from a parallel thread could slip in between the overflow and the 'WscGenV2Msg' call. If the timing worked out, the concurrent allocation would consume the corrupted object ('free_2'), allowing 'WscGenV2Msg' to become the second allocation and land at 'arbitrary_location'. This was effectively a race condition scenario.
 
-In fact, after a lot of testing, I figured out that the best way to win this race condition this was not to send UPnP requests concurrently, but to send them sequentially as fast as possible. When 'wscd' processed them one by one, they were forwarded to the kernel via 'ioctl', but 'wscd' did not wait for a response. Instead, messages were processed asynchronously in parallel inside the kernel. After analyzing too many kernel crashes, I found that this approach better aligned timing between components and made the race condition significantly more reliable.
+In fact, after a lot of testing, I figured out that the best way to win this race condition was not to send UPnP requests concurrently, but to send them sequentially as fast as possible. When 'wscd' processed them one by one, they were forwarded to the kernel via 'ioctl', but 'wscd' did not wait for a response. Instead, messages were processed asynchronously in parallel inside the kernel. After analyzing too many kernel crashes, I found that this approach better aligned timing between components and made the race condition significantly more reliable.
 
 So, I crafted a PoC that sent multiple WPS messages in quick bursts. Each message contained the following three TLVs:
 <ol><li>TLV 0x1041 (value 1): Triggers the code path that leads to 'WscGenV2Msg' allocation</li>
