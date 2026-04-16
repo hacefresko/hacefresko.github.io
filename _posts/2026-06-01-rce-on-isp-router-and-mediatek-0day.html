@@ -10,9 +10,9 @@ header:
 
 {% raw %}Hi there! In this blog post, I will walk through how I went from poking around with my ISP router to achieving kernel-level unauthenticated remote code execution using a Mediatek 0day. The vulnerabilities involved in this research have been disclosed over the past months and assigned the following CVEs:
 
-  - <a href="https://www.zyxel.com/global/en/support/security-advisories/zyxel-security-advisory-for-null-pointer-dereference-and-command-injection-vulnerabilities-in-certain-4g-lte-5g-nr-cpe-dsl-ethernet-cpe-fiber-onts-security-routers-and-wireless-extenders-02-24-2026">CVE-2025-13942</a>: Zyxel unauthenticated command injection in UPnP daemon
-  - <a href="https://www.zyxel.com/global/en/support/security-advisories/zyxel-security-advisory-for-null-pointer-dereference-and-command-injection-vulnerabilities-in-certain-4g-lte-5g-nr-cpe-dsl-ethernet-cpe-fiber-onts-security-routers-and-wireless-extenders-02-24-2026">CVE-2025-13943</a>: Zyxel authenticated command injection in log export CGI
-  - <a href="">CVE-2026-20452</a>: Mediatek MTXXX WPS heap overflow
+  * <a href="https://www.zyxel.com/global/en/support/security-advisories/zyxel-security-advisory-for-null-pointer-dereference-and-command-injection-vulnerabilities-in-certain-4g-lte-5g-nr-cpe-dsl-ethernet-cpe-fiber-onts-security-routers-and-wireless-extenders-02-24-2026">CVE-2025-13942: Zyxel unauthenticated command injection in UPnP daemon</a>
+  * <a href="https://www.zyxel.com/global/en/support/security-advisories/zyxel-security-advisory-for-null-pointer-dereference-and-command-injection-vulnerabilities-in-certain-4g-lte-5g-nr-cpe-dsl-ethernet-cpe-fiber-onts-security-routers-and-wireless-extenders-02-24-2026">CVE-2025-13943: Zyxel authenticated command injection in log export CGI</a>
+  * <a href="">CVE-2026-20452: Mediatek MTXXX WPS heap overflow</a>
 
 As usual, this research is heavily based on reverse engineering and a fair amount of trial and error, so please excuse any possible mistakes, especially in low-level kernel stuff, as this is a very complex topic. Also, take into account that, to prevent this post from being twice as long, I have omitted A LOT of rabbit holes and dead ends, as well as some intermediate steps and implementation details. This write-up does not reflect the end-to-end process of the research, just the key highlights.
 
@@ -326,13 +326,13 @@ Next step was then to obtain the kernel image, which I extracted directly from t
       20300000-20303fff : 0000:02:00.0
     20304000-20304fff : 0000:02:00.0
       20304000-20304fff : 0000:02:00.0
-# dd if=/dev/mem of=/tmp/kernel_code_data.bin bs=1 skip=8192 count=15386176
+# dd if=/dev/mem of=/tmp/vmlinux bs=1 skip=8192 count=15386176
 15386176+0 records in
 15386176+0 records out
 15386176 bytes (14.7MB) copied, 123.994837 seconds, 121.2KB/s
 #</code>
 
-I loaded it on Ghidra and set the corresponding memory base address, which was '0x80002000'. Since analyzing the whole kernel would take ages, I obtained the '/proc/kallsyms' file from the device, which holds kernel exported symbols and their addresses, and imported it into to Ghidra using a quick vibe-coded script. At this point I also noted that 'KASLR' was not enabled, so all symbol addresses were static and remained the same across reboots. With that, I had already over 25000 kernel functions located:
+I loaded it on Ghidra and set the corresponding memory base address, which was '0x80002000'. Since analyzing the whole kernel would take ages, I obtained the '/proc/kallsyms' file from the device, which holds kernel exported symbols and their addresses, and imported it into to Ghidra using a quick vibe-coded script. At this point I also noted that 'KASLR' was not enabled, so all symbol addresses were static and remained the same across reboots. With that, I had already over 25000 kernel functions identified in Ghidra:
 
 <img src="/assets/images/posts/2026-06-01/kernel_functions.png" style="width: 35em">
 
@@ -511,26 +511,21 @@ After the overflow, the driver continues processing the extracted sub-item as fo
     // requires a 0x1041 TLV inside the WPS packet
     if (flag_1041){
         WscBuildBeaconIE(..., sub_item, sub_item_len, ...);
-
         // ...
     }
     // ...
 }</code>
 <code class="language-c">void WscBuildBeaconIE(...) {
     // ...
-
     WscGenV2Msg(..., sub_item, sub_item_len, ...);
-
     // ...
 }</code>
 <code class="language-c">void WscGenV2Msg(...) {
     os_alloc_mem(0, buf, 128); // buf gets allocated into kmalloc-128
-
     // ...
     
     // copies sub-item into buf
     WscAppendV2SubItem(1, sub_item, sub_item_len, buf, ...);
-
     // ...
 }</code>
 
