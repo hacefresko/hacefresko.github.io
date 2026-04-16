@@ -10,9 +10,9 @@ header:
 
 {% raw %}Hi there! In this blog post, I will walk through how I went from poking around with my ISP router to achieving kernel-level unauthenticated remote code execution using a Mediatek 0day. The vulnerabilities involved in this research have been disclosed over the past months and assigned the following CVEs:
 
-  - CVE-2025-13942: Zyxel unauthenticated command injection in UPnP daemon
-  - CVE-2025-13943: Zyxel authenticated command injection in log export CGI
-  - CVE-2026-20452: Mediatek MTXXX WPS heap overflow
+  - <a href="https://www.zyxel.com/global/en/support/security-advisories/zyxel-security-advisory-for-null-pointer-dereference-and-command-injection-vulnerabilities-in-certain-4g-lte-5g-nr-cpe-dsl-ethernet-cpe-fiber-onts-security-routers-and-wireless-extenders-02-24-2026">CVE-2025-13942</a>: Zyxel unauthenticated command injection in UPnP daemon
+  - <a href="https://www.zyxel.com/global/en/support/security-advisories/zyxel-security-advisory-for-null-pointer-dereference-and-command-injection-vulnerabilities-in-certain-4g-lte-5g-nr-cpe-dsl-ethernet-cpe-fiber-onts-security-routers-and-wireless-extenders-02-24-2026">CVE-2025-13943</a>: Zyxel authenticated command injection in log export CGI
+  - <a href="">CVE-2026-20452</a>: Mediatek MTXXX WPS heap overflow
 
 As usual, this research is heavily based on reverse engineering and a fair amount of trial and error, so please excuse any possible mistakes, especially in low-level kernel stuff, as this is a very complex topic. Also, take into account that, to prevent this post from being twice as long, I have omitted A LOT of rabbit holes and dead ends, as well as some intermediate steps and implementation details. This write-up does not reflect the end-to-end process of the research, just the key highlights.
 
