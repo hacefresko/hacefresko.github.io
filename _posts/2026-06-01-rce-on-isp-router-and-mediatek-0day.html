@@ -336,9 +336,9 @@ I loaded it on Ghidra and set the corresponding memory base address, which was '
 
 <img src="/assets/images/posts/2026-06-01/kernel_functions.png" style="width: 35em">
 
-With Claude's help, I found that the function handling 'ioctl' messages with command '0x8BE1' was 'rt28xx_ap_ioctl'. The naming was consistent with the Mediatek RT28xx driver family, which confirmed I was looking at vendor code. This function acted as a dispatcher, routing each 'ioctl' message to the appropriate handler depending on the received 'WFAWLANConfig' UPnP command. With this, I already had the full picture, so I started to look for vulnerabilities.
+With Claude's help, I found that the function handling 'ioctl' messages with command '0x8BE1' was 'rt28xx_ap_ioctl'. The naming was consistent with the Mediatek RT28xx driver family, which confirmed I was looking at vendor code. This function acted as a dispatcher, routing each 'ioctl' message to the appropriate handler depending on the received UPnP command. With this, I already had the full picture, so I started to look for vulnerabilities.
 
-After tracing the available 'WFAWLANConfig' command handlers, I focused on 'SetSelectedRegistrar', which is processed by 'WscSelectedRegistrar' in the kernel driver. This command is part of the WPS auth flow and is used to signal the state of an ongoing registration process. It takes a single parameter, 'NewMessage', which is a base64-encoded blob containing one or more TLV (Type-Length-Value) structures. Once decoded, 'WscSelectedRegistrar' iterates over these TLVs sequentially and processes them one by one.
+After tracing the available 'WFAWLANConfig' command handlers, I focused on 'SetSelectedRegistrar', which is processed by 'WscSelectedRegistrar' in the kernel driver. This command is part of the WPS auth flow and is used to signal the state of an ongoing registration process (not really important for us). It takes a single parameter, 'NewMessage', which is a base64-encoded blob containing one or more TLV (Type-Length-Value) structures. Once decoded, 'WscSelectedRegistrar' iterates over these TLVs sequentially and processes them one by one.
 
 For TLVs of type '0x1049', it does the following:
 
@@ -543,7 +543,7 @@ So, I crafted a PoC that sent multiple WPS messages in quick bursts. Each messag
 <ol><li>TLV 0x1041 (value 1): Triggers the code path that leads to 'WscGenV2Msg' allocation</li>
 <li>TLV 0x1049 (20 bytes): Creates the initial 'sub_item' buffer in 'kmalloc-128'</li>
 <li>TLV 0x1049 (132 bytes): Overflows 'sub_item' and corrupts the adjacent heap object by 4 bytes, overwriting its freelist pointer with 'WRITE_ADDR'</li></ol>
-For testing, I chose a 'WRITE_ADDR' filled with null bytes, so the freelist would remain valid and the kernel could continue running after the exploit:
+For testing, I chose a 'WRITE_ADDR' which contained null bytes only, so the freelist would remain valid and the kernel could continue running after the exploit:
 
 <code class="language-python">WRITE_ADDR = 0x80ea0000
 
@@ -608,9 +608,15 @@ Code: 8c430000  3063c000  2c630001 &#60;00030336&#62; 8c430000  7c630380  106000
 
 Note that although a crash was produced, the device did not reboot. Some network services died, such as 'wscd' itself or the HTTP server, but others such as SSH stayed up, which is how I verified with 'hexdump' that the arbitrary write had landed correctly.
 
-When an attempt failed because the adjacent heap object wasn't free, the device usually crashed and rebooted. However, if the adjacent object was free but no concurrent allocation happened between the overflow and 'WscGenV2Msg', then 'WscGenV2Msg' consumed the corrupted object itself, and the next 'kmalloc-128' allocation landed on 'WRITE_ADDR' instead. This next allocation happen to be inside 'WscAppendV2SubItem' which always wrote bytes '00 01 20 00' into 'WRITE_ADDR':
+When an attempt failed because the adjacent heap object wasn't free, the device usually crashed and rebooted. However, the most common case was when the adjacent object was free but no concurrent allocation happened between the overflow and 'WscGenV2Msg. In such scenario, 'WscGenV2Msg' consumed the corrupted object itself and the second 'kmalloc-128' allocation landed on 'WRITE_ADDR' instead. This second allocation usually was the next one in the code path, at 'WscAppendV2SubItem', which always wrote bytes '00 01 20 00' into 'WRITE_ADDR' without a reboot:
 
 <img src="/assets/images/posts/2026-06-01/failed_arbitrary_write.png" style="width: 40em">
+
+So, as a summary, the following outcomes could occur on an exploitation attempt, ordered by their probability:
+
+1. Adjacent object is free but 'WscGenV2Msg' doesn't win the race. 'WscAppendV2SubItem' writes '00 01 20 00' into 'WRITE_ADDR' with no reboot.
+2. Adjacent object is not free. It gets corrupted and device reboots.
+3. Adjacent object is free and 'WscGenV2Msg' wins the race, allocating into 'WRITE_ADDR'. Payload is written into 'WRITE_ADDR' with no reboot.
 
 This PoC was not particularly reliable and often took many attempts to succeed. However, given the remote nature of the bug and that it was my first time dealing with kernel exploitation, I was quite happy with these results. So, next step was using this remote kernel arbitrary write primitive to achieve some code execution :D
 
@@ -618,7 +624,7 @@ This PoC was not particularly reliable and often took many attempts to succeed. 
 ----[ Achieving code execution ]----------------------
 
 The strategy now was finding a set of function pointers that would be dereferenced automatically or on demand, to redirect execution to shellcode. Since KASLR was not enabled, I just needed to find the right addresses. However, there were some constraints in place:
-<ol><li>The target area to be overwritten needed to start with 4 null bytes, since the kernel would still try to traverse the corrupted freelist pointer to allocate any next object after the corruption. If the first 4 bytes weren't valid, the allocator would crash immediately.</li>
+<ol><li>The target area to be overwritten needed to start with 4 null bytes. when the freelist pointed there because of the hijacking, the kernel would still try to traverse the corrupted freelist pointer to allocate any next object. If the first 4 bytes weren't valid, the allocator would crash immediately.</li>
 <li>On a failed attempt, the exploit needed to cause a reboot, since it required many attempts to succeed. To do so, the first 4 bytes of the target area needed to be dereferenced so that the bytes written automatically on failed attempts would crash the device. Else, 'wscd' would go down but the system would stay up, preventing exploitation.</li>
 <li>On a successful attempt, a WPS header of 8 bytes was written before the controlled data, meaning that any target function pointer had to be located at a minimum of 8 bytes into the target area.</li></ol>
 After many hours talking with Claude, reading kernel code and doing a lot of manual testing on the device, I finally found some function pointers that met these requirements. They were located in something like a protocol handler table at '0x8084f864':
@@ -719,13 +725,13 @@ Although I am sure there are ways to improve the exploit further and make the wh
 
 ----[ Okay, but are 128 bytes enough? ]---------------
 
-If you have been paying attention, you will have realized that I can only execute around 120 bytes of shellcode due to the 128-byte arbitrary write limit. Initially, I was going to call this a success and move on. However, as I was writing this blog post, I started getting the feeling that this wasn't enough. I needed to build a fully working exploit that could give me a root shell.
+If you have been paying attention, you will have realized that I can only execute around 120 bytes of shellcode due to the 128-byte arbitrary write limit. At first, I was going to call this a success and move on. However, as I was writing this blog post, I started doubting whether it was possible to do something actually useful within the 120-byte limit, instead of just printing a short message to the UART output. So, I decided I wasn't done: I needed to craft a fully working RCE exploit.
 
-After some more research, I figured out that trying to execute a reverse shell would require the exploit to return cleanly so that the device did not crash, which seemed like way too much effort. Plus, I had almost no room for long strings, and any cleanup code would probably leave no room for anything else given my tight 120-byte budget. I needed to modify something that survived reboots, so that I did not have to worry about the device crashing after exploitation.
+Trying to execute a reverse shell would require the exploit to return cleanly so that the device did not crash, which seemed like way too much effort. Plus, I had almost no room for long strings, and any cleanup code would probably leave no space for anything else given my tight 120-byte budget. I needed to modify something that survived reboots, so that I did not have to worry about the device crashing after exploitation.
 
-So instead, I decided to target '/data/zcfg_config.json', a persistent config file that stored basically every parameter on the device. Crucially, it contained password hashes for each user that the device reads on boot to populate '/etc/shadow'. This way, I only needed to modify it and let the device crash, so that I could login via SSH once it rebooted again.
+So instead, I decided to target '/data/zcfg_config.json', a persistent config file that stored every parameter on the device. Crucially, it contained password hashes for each user that the device reads on boot to populate '/etc/shadow'. This way, I only needed to modify it and let the device crash, so that I could login via SSH once it rebooted again.
 
-At this point, Claude was only helpful for translating MIPS instructions into bytecode, since I could not make it understand basic hex math nor shellcode optimizations. After a lot of trial and error and some manual assembly programming, I managed to squeeze into 120 bytes some shellcode that executed 'sed -i s/\$6\$[^:]*/ab.oZPM0Sll9M/ /data/zcfg_config.json' asynchronously and then looped indefinitely. This replaced every password hash in the config file with the shortest hash corresponding to 'hacked':
+At this point, Claude was only helpful for translating MIPS instructions into bytecode, since I could not make it understand basic hex math nor shellcode optimizations. After a lot of trial and error and some manual assembly programming, I managed to squeeze into 120 bytes some shellcode that executed 'sed -i s/\$6\$[^:]*/ab.oZPM0Sll9M/ /data/zcfg_config.json' asynchronously and then looped indefinitely. This replaced every password hash in the config file with the shortest possible hash corresponding to 'hacked':
 
 <code class="language-python">WRITE_ADDR       = 0x8084f864
 SHELLCODE_ADDR   = WRITE_ADDR + 8
