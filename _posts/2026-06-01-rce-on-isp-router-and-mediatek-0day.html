@@ -521,7 +521,7 @@ After the overflow, the driver continues processing the extracted sub-item as fo
     // ...
 }</code>
 <code class="language-c">void WscGenV2Msg(...) {
-    os_alloc_mem(0, buf, 128); // buf gets allocated into kmalloc-128
+    os_alloc_mem(0, buf, 128); // kmalloc wrapper - buf gets allocated into kmalloc-128
     // ...
     
     // copies sub-item into buf
