@@ -1,6 +1,6 @@
 ---
 layout: post
-title: From breaking into my ISP router to finding a Mediatek kernel 0day
+title: From breaking into my ISP router to finding a MediaTek kernel 0day
 date: 2025/06/01
 tags: iot kernel 0day
 permalink: /posts/rce-on-isp-router-and-mediatek-0day
@@ -8,11 +8,11 @@ header:
   teaser: posts/2026-06-01/teaser.png
 ---
 
-{% raw %}Hi there! In this blog post, I will walk through how I went from poking around with my ISP router to achieving kernel-level unauthenticated remote code execution using a Mediatek 0day. The vulnerabilities involved in this research have been disclosed over the past months and assigned the following CVEs:
+{% raw %}Hi there! In this blog post, I will walk through how I went from poking around with my ISP router to achieving unauthenticated kernel remote code execution using a MediaTek 0day. The vulnerabilities involved in this research have been disclosed over the past months and have been assigned the following CVEs:
 
   - <a href="https://www.zyxel.com/global/en/support/security-advisories/zyxel-security-advisory-for-null-pointer-dereference-and-command-injection-vulnerabilities-in-certain-4g-lte-5g-nr-cpe-dsl-ethernet-cpe-fiber-onts-security-routers-and-wireless-extenders-02-24-2026">CVE-2025-13942: Zyxel unauthenticated command injection in UPnP daemon</a>
   - <a href="https://www.zyxel.com/global/en/support/security-advisories/zyxel-security-advisory-for-null-pointer-dereference-and-command-injection-vulnerabilities-in-certain-4g-lte-5g-nr-cpe-dsl-ethernet-cpe-fiber-onts-security-routers-and-wireless-extenders-02-24-2026">CVE-2025-13943: Zyxel authenticated command injection in log export CGI</a>
-  - <a href="">CVE-2026-20452: Mediatek MTXXX WPS heap overflow</a>
+  - <a href="">CVE-2026-20452: MediaTek MTXXX WPS heap overflow</a>
 
 As usual, this research is heavily based on reverse engineering and a fair amount of trial and error, so please excuse any possible mistakes, especially in low-level kernel stuff, as this is a very complex topic. Also, take into account that, to prevent this post from being twice as long, I have omitted A LOT of rabbit holes and dead ends, as well as some intermediate steps and implementation details. This write-up does not reflect the end-to-end process of the research, just the key highlights.
 
@@ -302,7 +302,7 @@ Command 'GetDeviceInfo' didn't have parameters, since it only retrieved some WiF
 
 <img src="/assets/images/posts/2026-06-01/wscd_ioctl.png" style="width: 40em">
 
-This command '0x8BE1' falls within the <a href="https://github.com/torvalds/linux/blob/master/include/uapi/linux/wireless.h#L328">Linux Wireless Extensions private range</a> (0x8BE0-0x8BFF), meaning it bypasses the generic network stack and is instead handled by the private 'ioctl' handler of the corresponding wireless driver. In this case, the WiFi chipset was from Mediatek, so the driver was also Mediatek-provided and compiled directly into the kernel. This implied that following the user input path would require diving into kernel space and reversing driver code directly.
+This command '0x8BE1' falls within the <a href="https://github.com/torvalds/linux/blob/master/include/uapi/linux/wireless.h#L328">Linux Wireless Extensions private range</a> (0x8BE0-0x8BFF), meaning it bypasses the generic network stack and is instead handled by the private 'ioctl' handler of the corresponding wireless driver. In this case, the WiFi chipset was from MediaTek, so the driver was also MediaTek-provided and compiled directly into the kernel. This implied that following the user input path would require diving into kernel space and reversing driver code directly.
 
 Next step was then to obtain the kernel image, which I extracted directly from the memory of the device: 
 
@@ -336,7 +336,7 @@ I loaded it on Ghidra and set the corresponding memory base address, which was '
 
 <img src="/assets/images/posts/2026-06-01/kernel_functions.png" style="width: 35em">
 
-With Claude's help, I found that the function handling 'ioctl' messages with command '0x8BE1' was 'rt28xx_ap_ioctl'. The naming was consistent with the Mediatek RT28xx chip family, which confirmed I was looking at vendor code. This function acted as an initial dispatcher, routing each 'ioctl' message to the appropriate handler inside the Mediatek kernel driver. With this, I was able to locate each handler function for every 'WFAWLANConfig' UPnP command.
+With Claude's help, I found that the function handling 'ioctl' messages with command '0x8BE1' was 'rt28xx_ap_ioctl'. The naming was consistent with the MediaTek RT28xx chip family, which confirmed I was looking at vendor code. This function acted as an initial dispatcher, routing each 'ioctl' message to the appropriate handler inside the MediaTek kernel driver. With this, I was able to locate each handler function for every 'WFAWLANConfig' UPnP command.
 
 After some initial analysis, I focused on the 'SetSelectedRegistrar' command, which is ultimately processed by 'WscSelectedRegistrar'. This command is part of the WPS auth flow and is used to signal the state of an ongoing registration process (not really important for us). It takes a single parameter, 'NewMessage', which is a base64-encoded blob containing one or more TLV (Type-Length-Value) structures. Once decoded, 'WscSelectedRegistrar' iterates over these TLVs sequentially and processes them one by one.
 
@@ -418,7 +418,7 @@ That felt incredible. However, it was my first time dealing with a kernel crash,
 
 ----[ Intro to kernel exploitation ]------------------
 
-Before I could do anything useful with this kernel crash, I needed to understand what was actually happening under the hood. I had never done kernel exploitation before, so I spent a good amount of time studying the topic, especially for embedded and Mediatek devices. Out of all the resources I found, I must reference the following two, since they were the most helpful ones (and the most similar cases):
+Before I could do anything useful with this kernel crash, I needed to understand what was actually happening under the hood. I had never done kernel exploitation before, so I spent a good amount of time studying the topic, especially for embedded and MediaTek devices. Out of all the resources I found, I must reference the following two, since they were the most helpful ones (and the most similar cases):
 
 - <a href="https://www.youtube.com/watch?v=qT3YFtGjiuQ">HEXACON 2025 - Arise from the Wireless: Breaking the Security Barrier in Wi-Fi by Xiaobye</a>
 - <a href="https://blog.coffinsec.com/0days/2025/12/15/more-like-mediarekt-amirite.html">hyprblog - mediatek? more like media-rekt, amirite.</a>
@@ -432,7 +432,7 @@ Jokes aside, after crashing the device for hours, I obtained a lot of informatio
 
 ----[ Freelist hijacking ]----------------------------
 
-Some research later, I ended up going down a very different route, which was freelist hijacking. This technique targets allocator metadata stored within free adjacent objects, rather than trying to corrupt the contents of adjacent objects themselves. I learned this technique from the Hexacon 2025 talk I referenced earlier, where Xiaobye uses it to achieve remote code execution with a very similar Mediatek vulnerability. 
+Some research later, I ended up going down a very different route, which was freelist hijacking. This technique targets allocator metadata stored within free adjacent objects, rather than trying to corrupt the contents of adjacent objects themselves. I learned this technique from the Hexacon 2025 talk I referenced earlier, where Xiaobye uses it to achieve remote code execution with a very similar MediaTek vulnerability. 
 
 But first, we need to go over some kernel allocator concepts. In my case, neither 'CONFIG_SLAB_FREELIST_RANDOM' nor 'CONFIG_SLAB_FREELIST_HARDENED' were enabled, which are kernel protections related to the freelist. As such, the following explanations do not take these protections into account and only discuss the very basics.
 
