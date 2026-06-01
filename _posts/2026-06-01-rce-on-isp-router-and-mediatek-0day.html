@@ -1,7 +1,7 @@
 ---
 layout: post
 title: From breaking into my ISP router to finding a MediaTek kernel 0day
-date: 2025/06/01
+date: 2026/06/01
 tags: kernel iot 0day
 permalink: /posts/rce-on-isp-router-and-mediatek-0day
 header:
@@ -12,9 +12,9 @@ header:
 
   - <a href="https://www.zyxel.com/global/en/support/security-advisories/zyxel-security-advisory-for-null-pointer-dereference-and-command-injection-vulnerabilities-in-certain-4g-lte-5g-nr-cpe-dsl-ethernet-cpe-fiber-onts-security-routers-and-wireless-extenders-02-24-2026">CVE-2025-13942: Zyxel unauthenticated command injection in UPnP daemon</a>
   - <a href="https://www.zyxel.com/global/en/support/security-advisories/zyxel-security-advisory-for-null-pointer-dereference-and-command-injection-vulnerabilities-in-certain-4g-lte-5g-nr-cpe-dsl-ethernet-cpe-fiber-onts-security-routers-and-wireless-extenders-02-24-2026">CVE-2025-13943: Zyxel authenticated command injection in log export CGI</a>
-  - <a href="">CVE-2026-20452: MediaTek MTXXX WPS heap overflow</a>
+  - <a href="https://corp.mediatek.com/product-security-bulletin/June-2026">CVE-2026-20452: MediaTek WPS kernel driver heap overflow</a>
 
-As usual, this research is heavily based on reverse engineering and a fair amount of trial and error, so please excuse any possible mistakes, especially in low-level kernel stuff, as this is a very complex topic. Also, take into account that, to prevent this post from being twice as long, I have omitted A LOT of rabbit holes and dead ends, as well as some intermediate steps and implementation details. This write-up does not reflect the end-to-end process of the research, just the key highlights.
+As usual, this research is heavily based on reverse engineering and a fair amount of trial and error, so please excuse any possible mistakes, especially in low-level kernel stuff, as this is a very complex topic. Also, take into account that, to prevent this post from being twice as long, I have omitted A LOT of rabbit holes and dead ends, as well as some intermediate steps and implementation details. This write-up does not reflect the entire process of the research, just the most interesting parts and the results.
 
 Huge thanks to the community and all the amazing colleagues who supported me along the way. Anyway, enough introduction. Let's start with the post, since there is a lot to cover.
 
@@ -282,7 +282,7 @@ Once the full reverse shell command is assembled in '/tmp/a', a final request ex
 
 <img src="/assets/images/posts/2026-06-01/zupnp_poc.png" style="width: 40em">
 
-Again, this vulnerability was reported to Zyxel, who confirmed that 'zupnp' was part of a deprecated Zyxel SDK that many ISPs still implemented. It was assigned CVE-2025-13942 and you can take a deeper look into the exploit and all affected devices <a href="https://github.com/hacefresko/CVEs/tree/main/CVE-2025-13942">at my github page</a>. 
+Again, this vulnerability was reported to Zyxel, who confirmed that 'zupnp' was part of a deprecated Zyxel SDK that many ISPs still implemented. It was assigned CVE-2025-13942 and you can take a deeper look into the exploit and all affected devices at <a href="https://github.com/hacefresko/CVEs/tree/main/CVE-2025-13942">my github page</a>. 
 
 
 ----[ Diving into the kernel ]------------------------
@@ -291,18 +291,18 @@ Great, I had discovered two command injections: one in the web interface and ano
 
 Remember the UPnP 'WFADevice'? It forwarded user input directly to the kernel via 'ioctl'. Also, this device ran a very old MIPS Linux kernel, which likely had few modern protections, so this seemed like a nice introduction to kernel exploitation, if I could find something.
 
-So first, I opened again the '/usr/bin/wscd' binary in Ghidra and began to dig deeper. As I already discussed earlier, it exposed 'WFADevice', which allowed configuration of WiFi parameters over IP using WPS. In this case, this UPnP device only implemented one service, named <a href="https://www.wi-fi.org/system/files/WFA_WLANConfig_1_0_Template_1_01.pdf">'WFAWLANConfig'</a>. Although the standard protocol describes several commands, 'wscd' only had 4 of them:
+So first, I opened again the '/usr/bin/wscd' binary in Ghidra and began to dig deeper. As I already discussed earlier, it exposed 'WFADevice', which allowed configuration of Wi-Fi parameters over IP using WPS. In this case, this UPnP device only implemented one service, named <a href="https://www.wi-fi.org/system/files/WFA_WLANConfig_1_0_Template_1_01.pdf">'WFAWLANConfig'</a>. Although the standard protocol describes several commands, 'wscd' only had 4 of them:
 
 - GetDeviceInfo
 - PutMessage
 - PutWLANResponse
 - SetSelectedRegistrar
 
-Command 'GetDeviceInfo' didn't have parameters, since it only retrieved some WiFi related information. However, the other three commands did accept user input, and all of them ended up calling 'wsc_set_oid', which sent that input straight into the kernel via 'ioctl' using command '0x8BE1':
+Command 'GetDeviceInfo' didn't have parameters, since it only retrieved some Wi-Fi related information. However, the other three commands did accept user input, and all of them ended up calling 'wsc_set_oid', which sent that input straight into the kernel via 'ioctl' using command '0x8BE1':
 
 <img src="/assets/images/posts/2026-06-01/wscd_ioctl.png" style="width: 40em">
 
-This command '0x8BE1' falls within the <a href="https://github.com/torvalds/linux/blob/master/include/uapi/linux/wireless.h#L328">Linux Wireless Extensions private range</a> (0x8BE0-0x8BFF), meaning it bypasses the generic network stack and is instead handled by the private 'ioctl' handler of the corresponding wireless driver. In this case, the WiFi chipset was from MediaTek, so the driver was also MediaTek-provided and compiled directly into the kernel. This implied that following the user input path would require diving into kernel space and reversing driver code directly.
+This command '0x8BE1' falls within the <a href="https://github.com/torvalds/linux/blob/master/include/uapi/linux/wireless.h#L328">Linux Wireless Extensions private range</a> (0x8BE0-0x8BFF), meaning it bypasses the generic network stack and is instead handled by the private 'ioctl' handler of the corresponding wireless driver. In this case, the Wi-Fi chipset was from MediaTek, so the driver was also MediaTek-provided and compiled directly into the kernel. This implied that following the user input path would require diving into kernel space and reversing driver code directly.
 
 Next step was then to obtain the kernel image, which I extracted directly from the memory of the device: 
 
@@ -784,10 +784,22 @@ I executed the exploit and, after some waiting, it finally happened. I successfu
 
 <img src="/assets/images/posts/2026-06-01/kernel_rce.png" style="width: 40em">
 
-## some comments about affected devices, impact, etc.
+This vulnerability was reported to MediaTek and assigned CVE-2026-20452. You can find the final exploit at <a href="https://github.com/hacefresko/CVEs/tree/main/CVE-2026-20452">my github page</a>. It has already been fixed and published in the <a href="https://corp.mediatek.com/product-security-bulletin/June-2026">June 2026 MediaTek Security Bulletin</a>. According to them, this bug ended up affecting the following chipsets (although they also explicitly mention that this list might be incomplete):
+
+- MT6890 (5G Mobile Hotspot)
+- MT7615 (Wi-Fi 5)
+- MT7915, MT7916, MT7981, MT7986 (Wi-Fi 6)
+- MT7990, MT7992, MT7993 (Wi-Fi 7)
+
+These chipsets can be found on many consumer and enterprise networking devices, including home routers (as in this research) but also other wireless access points, gateways and mobile hotspots. At least here in Spain, the router in which I found and exploited this vulnerability has been widely deployed by my ISP, and I am sure there are plenty of other similar affected devices on every building here. Talking numbers, these MediaTek chipsets are used by millions of devices worldwide. Although exploitation requires targeting a specific model and being able to reach the vulnerable UPnP service, this is still a serious bug that, at minimum, allows launching DoS attacks against affected devices, and kernel level RCE in the worst case.
+
 
 ----[ Conclusions ]----------------------------------
 
-## conclusions
+If you have reached the end of this post, congrats! This was a very long journey which took around 6 months from actually breaking into the router to the final MediaTek disclosure and publication of this research. All manufacturers involved were mostly okay to work with, although response times were sometimes longer than expected. Regarding AI, I have used Claude extensively, which worked quite well for reversing and identifying vulnerabilities, but not so much for kernel exploitation. This last part still required a lot of now-old-school learning and reading, which was a very nice experience.
+
+Overall, this was an amazing research to work on which took many hours to complete, and that I hope to be able to present at a hacking conference in the near future (if you are a VR/exploit dev con organizer, hmu!).
+
+Thanks a lot for reading and I hope you found this as interesting as I did. Feel free to contact me for any questions or any other matter, and happy hacking!
 
 {% endraw %}
