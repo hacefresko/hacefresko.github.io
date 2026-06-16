@@ -10,3 +10,4 @@ plugins:
   # RSS Feed
   - jekyll-feed
   - jekyll-redirect-from
+  - jekyll-sitemap
